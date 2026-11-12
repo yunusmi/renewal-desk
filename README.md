@@ -132,7 +132,7 @@ make verify
 
 Локальный frontend: `npm run dev -w apps/web`; API: `npm run build -w apps/server`, `npm run start:api -w apps/server`, worker: `npm run start:worker -w apps/server`. Нужны корректные `DATABASE_URL`, секреты, `APP_ORIGIN` (для Vite `http://localhost:5173`) и `PROVIDER_BASE_URL`; DB мигрируется через `npm run migrate`, core seed — `APP_ENV=development npm run seed:core`. Compose URL `postgres` предназначен контейнерам, с хоста укажите свой loopback test/dev URL.
 
-GitHub Actions запускает ту же `make verify`, сохраняет отчёты и dependency audit. Наличие workflow не означает успешный удалённый CI: он ещё не запускался. Реальные результаты и ограничения — в [docs/progress.md](docs/progress.md). [План](docs/implementation-plan.md), [надёжность](docs/reliability.md), [безопасность](docs/security.md), [ADR](docs/adr/) сохраняют исходные инженерные решения.
+GitHub Actions запускает ту же `make verify`, сохраняет отчёты и dependency audit. Фактический полный CI для release-кода `a756dbc` [прошёл успешно](https://github.com/yunusmi/renewal-desk/actions/runs/43264484986); статус относится именно к этому коммиту. Реальные результаты и ограничения — в [docs/progress.md](docs/progress.md). [План](docs/implementation-plan.md), [надёжность](docs/reliability.md), [безопасность](docs/security.md), [ADR](docs/adr/) сохраняют исходные инженерные решения.
 
 Реализация продолжена после Claude Code с помощью Codex. Код проверяется инструментами и тестами; независимую ручную приёмку владельца это не заменяет. Публикация репозитория и отправка задания остаются за владельцем.
 

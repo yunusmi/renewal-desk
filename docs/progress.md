@@ -3,7 +3,7 @@
 Last update: 2026-11-12 — Codex continuation. Earlier entries below preserve Claude Code history. Current verification is being completed; see appended continuation entries.
 
 ## Current state
-Current milestone: 8 — release candidate verified locally. Backend, worker, UI, demo, docs and workflow implemented; remote CI and upstream dependency advisories disclosed below. Accepted design: v2 under `references/design/`. Original source: `references/company/`. Architecture decisions proposed/accepted for implementation in ADRs.
+Current milestone: 8 — release candidate verified locally. Backend, worker, UI, demo, docs and workflow verified locally and in GitHub Actions; upstream dependency advisories disclosed below. Accepted design: v2 under `references/design/`. Original source: `references/company/`. Architecture decisions proposed/accepted for implementation in ADRs.
 
 | Milestone | Status | Evidence / next action |
 |---|---|---|
@@ -14,8 +14,8 @@ Current milestone: 8 — release candidate verified locally. Backend, worker, UI
 | 4 Worker/reliability | verified | Real simulator, actual SIGKILL/restart, HTTP fault/retry, fencing, finalization rollback |
 | 5 Core UI | verified | Desktop/mobile real browser core flow and error/role paths |
 | 6 Accepted design/demo | verified | Separate demo stack 15/7/11, real bootstrap, responsive screenshots/focus checks |
-| 7 Docs/workflow | verified | Local Swagger/Stoplight/OpenAPI, Makefile commands, README; remote CI not run |
-| 8 Release candidate | verified | 33 unit + 43 integration + 8 browser tests, lint/typecheck/build; limitations below |
+| 7 Docs/workflow | verified | Local Swagger/Stoplight/OpenAPI, Makefile/README; release implementation CI success, run 43264484986 |
+| 8 Release candidate | verified | 44 unit + 44 integration + 8 browser tests + fresh Compose verification, lint/typecheck/build; limitations below |
 
 Statuses: `not_started`, `in_progress`, `blocked`, `implemented_unverified`, `verified`. A stage is verified only when its required checks actually ran successfully.
 
@@ -41,10 +41,10 @@ Statuses: `not_started`, `in_progress`, `blocked`, `implemented_unverified`, `ve
 | Desktop/mobile Playwright | verified | 8/8 at 1440×900 / 390×844, installed Google Chrome |
 | Demo dataset separation | verified | Separate Compose project/volume/provider; SQL 15 resources/7 users/11 requests, bootstrap idempotence |
 | Swagger/Stoplight/snake_case | verified | Recursive contract checks, actual Elements rendered in browser |
-| CI/lint/typecheck/tests/build | verified | Local commands passed; GitHub workflow configured, remote run not performed |
+| CI/lint/typecheck/tests/build | verified | Local checks passed; release implementation a756dbc Verify run 43264484986 success |
 
 ## Remaining limitations and decisions
-- GitHub Actions workflow is configured; no remote CI result claimed.
+- GitHub Actions Verify passed for release implementation a756dbc (run 43264484986); subsequent documentation commits are reported separately.
 - Production dependency audit: 8 moderate upstream advisories, no high/critical. Full build/dev graph includes Stoplight upstream advisories; see README/ADR-008. No forced incompatible stack changes.
 - Simulator is in-memory; recovery guarantee excludes simulator restart/state loss. POST reservation may be counted before actual send after a crash.
 - UI follows v2 palette/layout/flows; header uses direct logout instead of the prototype's profile dropdown. Screenshots were inspected, no pixel-perfect equivalence claimed.
@@ -141,3 +141,11 @@ Statuses: `not_started`, `in_progress`, `blocked`, `implemented_unverified`, `ve
 - Six actual React production screenshots at 1440×900 and 390×844 saved under docs/release/screenshots, overflow assertions passed. Reviewed against approved design; existing direct-logout/data-dependent differences disclosed. Machine evidence and detailed report: docs/release/verification.md and compose-verification.json.
 - Repeated npm audit: production 8 moderate / 0 high / 0 critical; full graph 8 low / 20 moderate / 6 high / 0 critical (affected packages including meta advisories). No force fix, no dependency/lockfile or stack change. Remaining chains documented in docs/release/dependency-audit.json and verification.md; prebuilt Stoplight browser asset not declared immune.
 - GitHub Actions actual prior results: Verify success for 095217c (run 43260863246) and c3c312d (43259871896). These are not substituted for final new-commit CI; current release CI is checked after publication and reported in the release handoff.
+
+
+### 2026-11-12 — actual release CI result
+- Implementation commit a756dbc5ae20774e17bc2cd2270ee8adfdd1061e pushed to main. Actual GitHub Actions Verify run 43264484986 completed successfully, job duration 5m6s: npm ci, browser dependencies, full make verify (including new Compose gate), audit recording, artifacts upload and cleanup all succeeded.
+- Run: https://github.com/yunusmi/renewal-desk/actions/runs/43264484986 . Raw metadata/log retained locally in artifacts/release/ci-a756dbc.json and .log. Updated active README/progress statements that still said remote CI had never run; earlier historical session entries are preserved.
+- GitHub annotations (non-failing): v4 actions using Node20 runtime are currently forced onto Node24, and ubuntu-latest runner image migration. App remains pinned to Node22.21.1 via setup-node. No untested action-major upgrade introduced in this bounded pass.
+- Updated source archive artifacts/renewaldesk-a756dbc.zip is generated from the verified implementation commit, without node_modules, local secrets or generated build/test outputs.
+- This follow-up changes documentation only; application code/dependencies/architecture remain those verified in the referenced successful run.

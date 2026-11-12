@@ -31,7 +31,9 @@ Before this pass, actual Verify runs completed successfully for:
 - [095217c](https://github.com/yunusmi/renewal-desk/actions/runs/43260863246)
 - [c3c312d](https://github.com/yunusmi/renewal-desk/actions/runs/43259871896)
 
-These results cover their listed commits only. A final new-commit CI result must be recorded separately after publication; configured workflow alone is not evidence of success.
+Final implementation commit **a756dbc5ae20774e17bc2cd2270ee8adfdd1061e**: [Verify run 43264484986](https://github.com/yunusmi/renewal-desk/actions/runs/43264484986) actually completed **successfully** (job 5m6s). npm ci, Playwright setup, full make verify including fresh Compose recovery/IP-change/screenshots, audit report upload and cleanup all passed. These results cover the listed implementation commit; subsequent documentation-only commits do not change its tested code.
+
+Non-failing GitHub annotations: Node20-based v4 actions currently run under forced Node24, plus ubuntu-latest runner migration. Application Node remains 22.21.1. Action-major migration is left for separate compatibility work.
 
 ## Execution results
 
@@ -62,4 +64,4 @@ Captured through the running Nginx-served production React build, after the real
 | Requests | [desktop](screenshots/desktop-requests.png) | [mobile](screenshots/mobile-requests.png) |
 | Completed detail | [desktop](screenshots/desktop-completed.png) | [mobile](screenshots/mobile-completed.png) |
 
-Final new-commit CI metadata is retrieved after the commit exists and reported with the release handoff; local checks above are not described as a remote CI result.
+Actual successful remote CI is linked above. Raw metadata and log are retained locally under artifacts/release/ci-a756dbc.json and ci-a756dbc.log; source screenshots/evidence in this directory remain from the independent clean local Compose run.
