@@ -10,7 +10,7 @@ Implement the final handoff in `references/design/README.md`, `RenewalDesk.dc.ht
 ## Routes and flows
 | Path | UI and behavior |
 |---|---|
-| `/login` | Logo RenewalDesk, email/password, show/hide, busy/errors, local demo accounts autofill only when flag enabled; submit actual login, no role switch. |
+| `/login` | Logo RenewalDesk, email/password, show/hide, busy/errors, manual email/password entry using documented fictional accounts; submit actual login, no role switch or autofill flag (removed after final verification). |
 | `/overview` | 4 KPI (resources/pending/processing/attention), scoped data, links to filtered lists. Approver: чужие pending + attention; initiator: own active. Recent 5 requests, 5 expiry, 6 events. |
 | `/resources` | name/ID/category/expiry/amount/active status/action. Search, category/has_active filters, sort date/amount, pagination when needed, drawer details/current date/history. Initiator with no active request can create; active → open existing. |
 | `/requests` | primary page after login (or redirect to overview per handoff; choose `/overview` as default, `/requests` direct route). H1 above card, stats and status filter chips, search id/resource/creator, date sort. Each request separate row; primary columns resource, term new + old, cost, status; creator/created/open. White pill create. |

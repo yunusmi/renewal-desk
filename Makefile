@@ -3,7 +3,7 @@ export COMPOSE_BAKE := false
 CORE := docker compose -p renewaldesk-core
 TEST := docker compose -p renewaldesk-test -f compose.test.yaml
 DEMO := docker compose --env-file .env.demo -p renewaldesk-demo -f compose.yaml -f compose.demo.yaml
-.PHONY: env up down logs migrate seed demo test test-integration test-recovery test-e2e verify lint typecheck build
+.PHONY: env up down logs migrate seed demo test test-integration test-recovery test-e2e test-compose verify lint typecheck build
 
 env:
 	sh scripts/init-env.sh
@@ -41,4 +41,6 @@ test-e2e:
 	$(TEST) up -d --build --wait
 	npm run build -w apps/server
 	npm run test:e2e
-verify: lint typecheck build test test-integration test-e2e
+test-compose:
+	sh scripts/test-compose.sh
+verify: lint typecheck build test test-integration test-e2e test-compose

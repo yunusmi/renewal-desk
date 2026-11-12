@@ -26,7 +26,6 @@ RETRY_DELAY_MS=6000
 JOB_LEASE_MS=30000
 WORKER_POLL_MS=500
 WORKER_CONCURRENCY=1
-DEMO_LOGIN_ENABLED=true
 LOG_LEVEL=info
 ```
 Use `.env.example` placeholders and instructions to generate secrets (openssl or local script); no real secrets in repo. Provide documented local bootstrap to create ignored `.env`, fail clearly if required missing. Demo/test env separate. Allowed Origin exact match effective port. Validate worker config lease > timeout + margin. No arbitrary secret fallback in production-like config.

@@ -28,6 +28,9 @@ jobs:
             apps/web/test-results/
             apps/web/playwright-report/
             dependency-audit.json
+            artifacts/release/*.json
+            artifacts/release/*.log
+            artifacts/release/screenshots/
       - name: Cleanup isolated test project
         if: always()
         run: docker compose -p renewaldesk-test -f compose.test.yaml down

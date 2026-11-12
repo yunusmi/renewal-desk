@@ -1,5 +1,8 @@
 import type { ApiConfig, WorkerConfig } from '../../src/config/env';
 
+// Seeders require an explicit non-production mode, including direct fixture calls.
+process.env.APP_ENV ??= 'test';
+
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ??
   'postgresql://renewaldesk:test-only-local-password@127.0.0.1:55432/renewaldesk_test';
@@ -28,7 +31,6 @@ export function testApiConfig(over: Partial<ApiConfig> = {}): ApiConfig {
     csrfSecret: 'test-csrf-secret-0123456789abcdef0123456789abcdef',
     jwtTtlSeconds: 1800,
     cookieSecure: false,
-    demoLoginEnabled: false,
     loginRateLimit: 1000,
     loginRateWindowMs: 60000,
     ...over,

@@ -1,0 +1,79 @@
+{
+  "checked_on": "2026-11-12",
+  "production": {
+    "info": 0,
+    "low": 0,
+    "moderate": 8,
+    "high": 0,
+    "critical": 0,
+    "total": 8
+  },
+  "all_dependencies": {
+    "info": 0,
+    "low": 8,
+    "moderate": 20,
+    "high": 6,
+    "critical": 0,
+    "total": 34
+  },
+  "production_packages": {
+    "editorconfig": {
+      "severity": "moderate",
+      "via": [
+        "minimatch"
+      ]
+    },
+    "glob": {
+      "severity": "moderate",
+      "via": [
+        "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+        "minimatch"
+      ]
+    },
+    "js-beautify": {
+      "severity": "moderate",
+      "via": [
+        "editorconfig",
+        "glob"
+      ]
+    },
+    "minimatch": {
+      "severity": "moderate",
+      "via": [
+        "minimatch has potential denial of service via globparts amplification"
+      ]
+    },
+    "sequelize": {
+      "severity": "moderate",
+      "via": [
+        "uuid"
+      ]
+    },
+    "sequelize-cli": {
+      "severity": "moderate",
+      "via": [
+        "js-beautify"
+      ]
+    },
+    "sequelize-typescript": {
+      "severity": "moderate",
+      "via": [
+        "sequelize"
+      ]
+    },
+    "uuid": {
+      "severity": "moderate",
+      "via": [
+        "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided"
+      ]
+    }
+  },
+  "high_build_dev_packages": [
+    "@faker-js/faker",
+    "@stoplight/elements",
+    "@stoplight/elements-core",
+    "@stoplight/http-spec",
+    "lodash",
+    "postman-collection"
+  ]
+}

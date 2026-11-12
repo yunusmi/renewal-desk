@@ -1,7 +1,7 @@
 'use strict';
 const { randomUUID } = require('node:crypto');
 const { WORKSPACES, USERS, RESOURCES } = require('../../data/core');
-const { claimDataset, insertUsers } = require('../../data/seed-helpers');
+const { assertFictionalSeedEnvironment, claimDataset, insertUsers } = require('../../data/seed-helpers');
 const extraUsers = [
   ['u-apr-b', 'approver.beta', 'Ирина Соколова', 'beta', false, true],
   ['u-ini-o', 'initiator.orion', 'Павел Зуев', 'orion', true, false],
@@ -24,6 +24,7 @@ const extraResources = [
 const add30 = d => { const date = new Date(`${d}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + 30); return date.toISOString().slice(0, 10); };
 module.exports = {
   async up(qi) {
+    assertFictionalSeedEnvironment();
     await qi.sequelize.transaction(async transaction => {
       await claimDataset(qi, 'demo', transaction);
       // Serialize seeders without touching domain rows or resetting running jobs.

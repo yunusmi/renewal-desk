@@ -48,3 +48,9 @@ For race tests use real independent transactions/connections, not serial awaits;
 ## Expanded Core (owner change, ADR-009)
 
 The default Core seed now inserts 18 resources (Alpha 15 / Beta 3). A01 and browser test fixtures intentionally retain the original minimal 3-resource DATASET=test. D01 additionally executes the actual DATASET=core seed twice in an explicitly isolated fixture and checks 18 total / 15 Alpha / 3 Beta / 4 users, tenant scoping, preservation of modified expiry/amount, requests/jobs and audit. Demo remains 15 resources / 7 users / 11 initial requests.
+
+## Final Compose verification
+
+`make test-compose` (also the last gate of `make verify`) builds and starts a fresh isolated full stack, forces API recreation with a different IP while preserving the Nginx container/start time, checks API/docs/health routes, refuses production Core/Demo seeders, then runs concurrent approval → original POST 503 → API/worker stop/start → completed. Assertions include date 2027-03-31, operation_count=1, started_count=1, one term_updated event and unchanged provider/PostgreSQL process start times. Real React screenshots use 1440×900 and 390×844. No additional runtime dependency.
+
+Only newly created `renewaldesk-release-*` resources are removed in cleanup. Required ports: 18082/18094, explicit test subnet 172.30.220.0/24 (override RELEASE_SUBNET if occupied). Artifacts: artifacts/release/compose-verification.json, compose.log and screenshots/. Generated secrets are stored outside artifacts in a temporary env file and are not uploaded by CI.

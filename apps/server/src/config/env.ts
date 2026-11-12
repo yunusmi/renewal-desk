@@ -55,7 +55,6 @@ export interface ApiConfig extends DbConfig {
   csrfSecret: string;
   jwtTtlSeconds: number;
   cookieSecure: boolean;
-  demoLoginEnabled: boolean;
   loginRateLimit: number;
   loginRateWindowMs: number;
 }
@@ -82,8 +81,14 @@ function secret(env: Env, name: string, appEnv: AppEnv): string {
 }
 
 export function loadDbConfig(env: Env = process.env): DbConfig {
+  const appEnv = oneOf(env, 'APP_ENV', APP_ENVS, 'development');
+  if (appEnv === 'production') {
+    throw new ConfigError(
+      'Bundled core/demo/test datasets contain known fictional credentials and cannot run in production',
+    );
+  }
   return {
-    appEnv: oneOf(env, 'APP_ENV', APP_ENVS, 'development'),
+    appEnv,
     dataset: oneOf(env, 'DATASET', DATASETS, 'core'),
     databaseUrl: required(env, 'DATABASE_URL'),
     logLevel: oneOf(
@@ -121,7 +126,6 @@ export function loadApiConfig(env: Env = process.env): ApiConfig {
     csrfSecret,
     jwtTtlSeconds: int(env, 'JWT_TTL_SECONDS', 1800, 60, 86400),
     cookieSecure,
-    demoLoginEnabled: bool(env, 'DEMO_LOGIN_ENABLED', false),
     loginRateLimit: int(env, 'LOGIN_RATE_LIMIT', 10, 1, 10000),
     loginRateWindowMs: int(env, 'LOGIN_RATE_WINDOW_MS', 60000, 1000, 3600000),
   };

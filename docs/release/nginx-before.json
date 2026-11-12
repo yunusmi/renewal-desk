@@ -1,0 +1,7 @@
+{
+  "before_status": 200,
+  "old_ip": "172.30.219.2",
+  "new_ip": "172.30.219.4",
+  "after_status": 502,
+  "static_upstream_problem_reproduced": true
+}

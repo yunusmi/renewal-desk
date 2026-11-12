@@ -1,0 +1,6 @@
+# Verification only: explicit subnet lets the IP-change test reserve the old API address.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${RELEASE_SUBNET:-172.30.220.0/24}

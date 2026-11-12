@@ -120,6 +120,8 @@ make build
 make test
 make test-integration
 make test-recovery
+# Full isolated Compose recovery, API IP change and screenshots:
+make test-compose
 npx playwright install chromium
 make test-e2e
 # Полная последовательность с изолированным test startup:
@@ -128,10 +130,15 @@ make verify
 
 Интеграционные тесты используют только `renewaldesk_test` на loopback 55432 и test provider 18191 из `compose.test.yaml`. Они явно очищают **только test-БД**; не запускайте одновременно integration/E2E над одной БД. Тестовые ресурсы отдельны от core/demo. Recovery требует Docker CLI. E2E запускает тестовые API/worker/Vite-процессы и работает с оригинальным Docker provider, 1440×900 и 390×844. Артефакты: `apps/web/test-results/`, `apps/web/playwright-report/`. Для системного Chrome fallback используется wrapper, отсоединяющий диагностический stderr (обходит зависание macOS helper при закрытии; протокол/trace не меняет). Можно использовать установленный Chrome: `PLAYWRIGHT_EXECUTABLE_PATH='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' make test-e2e`.
 
-Локальный frontend: `npm run dev -w apps/web`; API: `npm run build -w apps/server`, `npm run start:api -w apps/server`, worker: `npm run start:worker -w apps/server`. Нужны корректные `DATABASE_URL`, секреты, `APP_ORIGIN` (для Vite `http://localhost:5173`) и `PROVIDER_BASE_URL`; DB мигрируется через `npm run migrate`, core seed — `npm run seed:core`. Compose URL `postgres` предназначен контейнерам, с хоста укажите свой loopback test/dev URL.
+Локальный frontend: `npm run dev -w apps/web`; API: `npm run build -w apps/server`, `npm run start:api -w apps/server`, worker: `npm run start:worker -w apps/server`. Нужны корректные `DATABASE_URL`, секреты, `APP_ORIGIN` (для Vite `http://localhost:5173`) и `PROVIDER_BASE_URL`; DB мигрируется через `npm run migrate`, core seed — `APP_ENV=development npm run seed:core`. Compose URL `postgres` предназначен контейнерам, с хоста укажите свой loopback test/dev URL.
 
 GitHub Actions запускает ту же `make verify`, сохраняет отчёты и dependency audit. Наличие workflow не означает успешный удалённый CI: он ещё не запускался. Реальные результаты и ограничения — в [docs/progress.md](docs/progress.md). [План](docs/implementation-plan.md), [надёжность](docs/reliability.md), [безопасность](docs/security.md), [ADR](docs/adr/) сохраняют исходные инженерные решения.
 
 Реализация продолжена после Claude Code с помощью Codex. Код проверяется инструментами и тестами; независимую ручную приёмку владельца это не заменяет. Публикация репозитория и отправка задания остаются за владельцем.
 
 Известный результат dependency audit на 2026-11-12: `npm audit --omit=dev` сообщает 8 moderate (транзитивные uuid/glob/minimatch и цепочки Sequelize/CLI), без high/critical в production-зависимостях. Полный build/dev-граф Stoplight имеет дополнительные upstream advisories; статический bundle не считается автоматически безопасным из-за переноса пакета в devDependencies. Не применялся `audit fix --force`, предлагающий несовместимые major/downgrade замены утверждённого стека. Dev-сервисы и документацию не следует публиковать как production deployment; детали и фактические проверки сохранены в progress.
+
+
+Финальная проверка добавляет `make test-compose` в `make verify`: временный отдельный Compose-проект, принудительная смена IP API без рестарта Nginx, отказ production-сидеров, конкурентное согласование и контрольный 503 → restart → completed, реальные desktop/mobile скриншоты. Порты проверки 18082/18094 и подсеть `172.30.220.0/24` должны быть свободны (при конфликте подсети задайте `RELEASE_SUBNET`). Отчёты: `artifacts/release/`; временные DB/provider удаляются только в созданном проверкой проекте.
+
+`DEMO_LOGIN_ENABLED` удалён: неиспользуемый флаг не управлял UI. Вход остаётся обычным, аккаунты указаны выше. Core/Demo seed требуют явного `APP_ENV=development` или `test`; при `APP_ENV=production` сидеры отказывают до обращения к БД, а API/worker отказывают в старте с комплектными наборами известных паролей. Для локальных production-сборок Docker остаётся `NODE_ENV=production` + `APP_ENV=development`. Настоящий публичный production deployment в этом задании не предоставляется.

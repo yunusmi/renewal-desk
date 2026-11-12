@@ -6,10 +6,11 @@
  */
 const { WORKSPACES, USERS, RESOURCES } = require('../../data/core');
 const { EXTRA_RESOURCES } = require('../../data/core-extra');
-const { claimDataset, insertUsers } = require('../../data/seed-helpers');
+const { assertFictionalSeedEnvironment, claimDataset, insertUsers } = require('../../data/seed-helpers');
 
 module.exports = {
   async up(qi) {
+    assertFictionalSeedEnvironment();
     const kind = process.env.DATASET === 'test' ? 'test' : 'core';
     await qi.sequelize.transaction(async (transaction) => {
       await claimDataset(qi, kind, transaction);

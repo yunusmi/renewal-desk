@@ -400,7 +400,7 @@ make verify
 | `make typecheck` | Проверка типов |
 | `make build` | Production-сборка обоих приложений |
 
-Успех: команды завершаются с кодом 0, тесты показывают `passed`. На последнем проверенном состоянии: 33 unit, 44 integration, 8 browser tests. `make verify` последовательно выполняет lint, typecheck, build, unit, integration и browser; отдельный `make test-recovery` после него не обязателен — restart уже входит в integration.
+Успех: команды завершаются с кодом 0, тесты показывают `passed`. На последнем проверенном состоянии: 44 unit, 44 integration, 8 browser tests. `make verify` последовательно выполняет lint, typecheck, build, unit, integration и browser; отдельный `make test-recovery` после него не обязателен — restart уже входит в integration.
 
 Тесты явно очищают только отдельную test-БД. Core/Demo не очищаются. Integration и browser не запускайте одновременно: они используют одну test-БД.
 

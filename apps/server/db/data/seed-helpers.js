@@ -2,6 +2,15 @@
 const bcrypt = require('bcryptjs');
 const { DEMO_PASSWORD, BCRYPT_COST } = require('./core');
 
+/** Known fictional passwords are allowed only in explicitly local/test deployments.
+ * NODE_ENV=production is normal for local runtime images; APP_ENV controls deployment mode.
+ */
+function assertFictionalSeedEnvironment(env = process.env) {
+  if (!['development', 'test'].includes(env.APP_ENV)) {
+    throw new Error('Fictional Core/Demo seed requires explicit APP_ENV=development or test; production seeding is forbidden');
+  }
+}
+
 /**
  * Claims the database for one dataset kind; refuses to load a different
  * dataset over existing data (core/demo/test never mix).
@@ -34,4 +43,4 @@ async function insertUsers(qi, users, transaction) {
   );
 }
 
-module.exports = { claimDataset, insertUsers };
+module.exports = { assertFictionalSeedEnvironment, claimDataset, insertUsers };
