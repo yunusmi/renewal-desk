@@ -1,0 +1,30 @@
+# Isolated test infrastructure: separate project, ephemeral DB, its own provider.
+# Never points at core/demo data. Ports are loopback-only.
+name: renewaldesk-test
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: renewaldesk_test
+      POSTGRES_USER: renewaldesk
+      POSTGRES_PASSWORD: test-only-local-password
+      TZ: UTC
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: ["postgres", "-c", "fsync=off", "-c", "max_connections=200"]
+    ports:
+      - "127.0.0.1:${TEST_PG_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U renewaldesk -d renewaldesk_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  provider:
+    image: renewaldesk-provider:local
+    build:
+      context: .
+      dockerfile: infrastructure/provider/Dockerfile
+    ports:
+      - "127.0.0.1:${TEST_PROVIDER_PORT:-18191}:8091"

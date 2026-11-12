@@ -8,8 +8,8 @@ Current milestone: 0 — discovery. Next: inspect repository/tools, read referen
 | Milestone | Status | Evidence / next action |
 |---|---|---|
 | 0 Discovery | verified | Sources read, tools checked, versions pinned in lockfile — see 2026-11-12 entry |
-| 1 Scaffold | in_progress | Server deps installed; Nest entrypoints/Compose/migrations next |
-| 2 Data/auth | not_started | Real DB and security tests |
+| 1 Scaffold | in_progress | Migrations/seed/compose written; full Docker stack start not yet verified |
+| 2 Data/auth | in_progress | A01–A04 18/18 passed on real PG |
 | 3 Business commands | not_started | Races, DB constraints, atomic approval |
 | 4 Worker/reliability | not_started | Real restart, provider counts, failure paths |
 | 5 Core UI | not_started | Core browser flow |
@@ -59,3 +59,11 @@ Statuses: `not_started`, `in_progress`, `blocked`, `implemented_unverified`, `ve
 - Plan/module boundaries: single backend workspace `apps/server` (API + worker entrypoints, shared domain/DB code, migrations, seeders, CLI) + `apps/web` (Vite/React); `infrastructure/{provider,nginx}`. See ADR-006.
 - Risks: worker reliability complexity; slow npm in Docker builds; Playwright image size; demo bootstrap needs live provider.
 - Next step: stage 1 scaffold (env validation, DB, migrations, health, Compose, provider launcher).
+
+### 2026-11-12 — milestones 1–3 (in progress)
+- Done: env validation; Sequelize models + associations; migration via sequelize-cli/queryInterface (all CHECK, composite FK, partial unique index `uq_renewal_active_resource`, immutability/append-only triggers) — verified up → undo:all → up on real PG 16; core seeder verified idempotent (2/3/4/4/0 after rerun, bcrypt `$2b$12$`), dataset guard refuses core over test. Auth (JWT cookie + DB session, Origin, HMAC CSRF, rate limit), read model and commands (create/approve/reject/retry) on ORM; provider launcher + Dockerfiles + compose.yaml + compose.test.yaml; Vite scaffold builds.
+- Owner decision: ORM queries + sequelize-cli → ADR-007 (Umzug removed).
+- Tests run: unit `npx jest --config jest.unit.config.js` 19/19 passed; integration `npx jest --config jest.integration.config.js --runInBand` (test DB `docker compose -p renewaldesk-test -f compose.test.yaml up -d --wait`) A01–A04: 18/18 passed.
+- Issues found/fixed: Docker bake fails on non-ASCII project path → `COMPOSE_BAKE=false`; `COMPOSE_PROJECT_NAME` in `.env` overrode test project name (test containers started as renewaldesk-core; no core data existed) → removed from `.env`, always `-p`.
+- Not yet verified: full `docker compose up` of core stack (images built before ORM switch need rebuild), B01–B05 tests, worker (stage 4), UI, Makefile, CI, Stoplight.
+- Next: B01–B05 integration tests (races, rollback), then worker with SKIP LOCKED/lease/fencing and R01–R07.

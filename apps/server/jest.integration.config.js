@@ -5,4 +5,5 @@ module.exports = {
   roots: ['<rootDir>/test'],
   testMatch: ['**/*.int-spec.ts'],
   testTimeout: 120000,
+  globalSetup: '<rootDir>/test/helpers/global-setup.ts',
 };

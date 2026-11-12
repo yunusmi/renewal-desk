@@ -1,0 +1,110 @@
+# RenewalDesk core stack. Project name isolates core/demo/test volumes.
+name: ${COMPOSE_PROJECT_NAME:-renewaldesk-core}
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-development}
+  DATASET: ${DATASET:-core}
+  DATABASE_URL: postgresql://renewaldesk:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required, run make env}@postgres:5432/renewaldesk
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: renewaldesk
+      POSTGRES_USER: renewaldesk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U renewaldesk -d renewaldesk"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    image: renewaldesk-server:local
+    build:
+      context: .
+      dockerfile: infrastructure/docker/server.Dockerfile
+      target: runtime
+    command: ["npx", "--no-install", "sequelize-cli", "db:migrate"]
+    environment: *backend-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  seed:
+    image: renewaldesk-server:local
+    command: ["npx", "--no-install", "sequelize-cli", "db:seed:all"]
+    environment: *backend-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: "no"
+
+  provider:
+    image: renewaldesk-provider:local
+    build:
+      context: .
+      dockerfile: infrastructure/provider/Dockerfile
+    # Not published by default; inspect via `docker compose exec provider ...`
+    # or set PROVIDER_PUBLISH_PORT for loopback-only host access.
+    ports:
+      - "127.0.0.1:${PROVIDER_PUBLISH_PORT:-18091}:8091"
+    restart: unless-stopped
+
+  api:
+    image: renewaldesk-server:local
+    command: ["node", "dist/main-api.js"]
+    environment:
+      <<: *backend-env
+      PORT: "3000"
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required}
+      CSRF_SECRET: ${CSRF_SECRET:?CSRF_SECRET required}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-1800}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DEMO_LOGIN_ENABLED: ${DEMO_LOGIN_ENABLED:-false}
+    depends_on:
+      seed: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    image: renewaldesk-server:local
+    command: ["node", "dist/main-worker.js"]
+    environment:
+      <<: *backend-env
+      PROVIDER_BASE_URL: ${PROVIDER_BASE_URL:-http://provider:8091}
+      PROVIDER_TIMEOUT_MS: ${PROVIDER_TIMEOUT_MS:-5000}
+      RETRY_DELAY_MS: ${RETRY_DELAY_MS:-6000}
+      JOB_LEASE_MS: ${JOB_LEASE_MS:-30000}
+      WORKER_POLL_MS: ${WORKER_POLL_MS:-500}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+    depends_on:
+      seed: { condition: service_completed_successfully }
+      provider: { condition: service_started }
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+  web:
+    image: renewaldesk-web:local
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+      target: runtime
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  pgdata:

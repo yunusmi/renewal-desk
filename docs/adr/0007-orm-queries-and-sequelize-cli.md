@@ -1,0 +1,7 @@
+# ADR-007 — Sequelize ORM for queries, sequelize-cli for migrations and seeders
+Status: accepted (2026-11-12, owner decision).
+
+Context: first implementation used raw SQL queries and Umzug. Owner asked to use Sequelize ORM facilities for queries and sequelize-cli for migrations/seeders (spec allowed "Umzug or sequelize-cli").
+Decision: application queries use models/associations (`findAll/findAndCountAll/count/update/create`, `lock: transaction.LOCK.UPDATE`, conditional `Model.update` with row-count check, later `skipLocked` for job claims). Migrations: `apps/server/db/migrations/*.js` via `queryInterface` (`createTable`, `addConstraint` check/unique/composite FK, `addIndex` with `where` for the partial unique index), applied by `sequelize-cli db:migrate`, ledger table `schema_migrations`. Seeders: `db/seeders/core` and `db/seeders/demo`, selected by `DATASET` in `.sequelizerc`, idempotent (`bulkInsert ... ignoreDuplicates`), `seederStorage: none`, dataset marker guard.
+Exceptions (no Sequelize API): `CREATE SEQUENCE` and trigger functions inside the migration; `sequelize.literal` for `'RN-' || nextval(...)`, DB-clock session expiry and `lease_token + 1`. Test helper resets the isolated test DB with `Model.truncate` + `ALTER SEQUENCE`.
+Consequences: Umzug removed; readiness compares `db/migrations` files with `schema_migrations`. One Sequelize instance per process (sequelize-typescript models bind to one instance); tests share it between API and worker.

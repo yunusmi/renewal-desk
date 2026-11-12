@@ -1,0 +1,11 @@
+// sequelize-cli paths. Seeders are split by dataset: DATASET=core|test → core, demo → demo.
+const path = require('path');
+
+const dataset = process.env.DATASET === 'demo' ? 'demo' : 'core';
+
+module.exports = {
+  config: path.resolve(__dirname, 'db', 'config.js'),
+  'migrations-path': path.resolve(__dirname, 'db', 'migrations'),
+  'seeders-path': path.resolve(__dirname, 'db', 'seeders', dataset),
+  'models-path': path.resolve(__dirname, 'db', 'models'),
+};
