@@ -7,8 +7,8 @@ Current milestone: 0 — discovery. Next: inspect repository/tools, read referen
 
 | Milestone | Status | Evidence / next action |
 |---|---|---|
-| 0 Discovery | not_started | Read source and record dependencies/tools |
-| 1 Scaffold | not_started | Compose/migration/health |
+| 0 Discovery | verified | Sources read, tools checked, versions pinned in lockfile — see 2026-11-12 entry |
+| 1 Scaffold | in_progress | Server deps installed; Nest entrypoints/Compose/migrations next |
 | 2 Data/auth | not_started | Real DB and security tests |
 | 3 Business commands | not_started | Races, DB constraints, atomic approval |
 | 4 Worker/reliability | not_started | Real restart, provider counts, failure paths |
@@ -48,3 +48,14 @@ Statuses: `not_started`, `in_progress`, `blocked`, `implemented_unverified`, `ve
 - Environment availability for Docker and browser: unknown until checked.
 - Demo provider historical fixture bootstrap and exact UI label: implement per architecture doc and verify.
 - No runtime code in starter kit. Do not describe it as working software yet.
+
+### 2026-11-12 — milestone 0 discovery
+- Goal: read originals/specs/design, inspect repo and tools, choose versions.
+- Read: CLAUDE.md, spec.md, PROMPT_FOR_CLAUDE_CODE.md, START_HERE.md, all docs/ and ADR-001..005, `references/company/task.pdf` (8 pages, extracted with `pdftotext -layout`; the embedded `reference_renewals.png` image was not extracted — page 6 text/table read), `provider_simulator.py`, `references/design/README.md`, screenshots desktop-02/04. `references/design/task.pdf` is byte-identical to the company PDF (`cmp`).
+- Repository: project directory is its own git repo (`git rev-parse --show-toplevel`), had no commits. Initial commit `c16c3e6` with starter kit + `.gitignore`. Local git identity set for this repo only.
+- Tools (actual): Docker 28.3.3, Compose v2.39.2, Node 22.21.1 via nvm (system default is 18 — use `nvm use` / `.nvmrc`), npm 10.9.4, Python 3.14.7 (host), psql 17, pdftotext.
+- Version choice (resolved in `package-lock.json`): NestJS 11.2.9, @nestjs/swagger 11.4.8, Sequelize 6.37.8, sequelize-typescript 2.1.6, pg 8.23.1, Umzug 3.8.3 (migration tool, programmatic, SQL migrations), TypeScript 5.9.3, Jest 29.7.0, ts-jest 29.4.15, bcryptjs 3.0.3. Deliberately not newest majors (TS 7, NestJS 12, Jest 30) to keep ts-jest/sequelize-typescript compatibility.
+- Issues: npm registry slow (~7s/request); first install failed with ERESOLVE because `@stoplight/elements` needs React peers — moved Stoplight out of server deps, to be served as static web-components assets (stage 7).
+- Plan/module boundaries: single backend workspace `apps/server` (API + worker entrypoints, shared domain/DB code, migrations, seeders, CLI) + `apps/web` (Vite/React); `infrastructure/{provider,nginx}`. See ADR-006.
+- Risks: worker reliability complexity; slow npm in Docker builds; Playwright image size; demo bootstrap needs live provider.
+- Next step: stage 1 scaffold (env validation, DB, migrations, health, Compose, provider launcher).
