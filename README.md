@@ -1,0 +1,3 @@
+# RenewalDesk — Claude Code starter kit
+
+This repository currently contains specifications and approved design/source references, not an implemented application. Start with [START_HERE.md](START_HERE.md), then paste [PROMPT_FOR_CLAUDE_CODE.md](PROMPT_FOR_CLAUDE_CODE.md) into Claude Code in this directory. `CLAUDE.md` contains agent instructions, `spec.md` is the main specification, and `docs/` contains detailed engineering contracts, milestone plan and progress tracker. During implementation replace this README with actual verified run/test instructions as described in `docs/development-workflow.md`.

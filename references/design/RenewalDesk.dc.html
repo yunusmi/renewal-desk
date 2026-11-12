@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>RenewalDesk</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#0B1B1D;color:#F5F7F7;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.45;overflow-x:hidden}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid #80A3FF;outline-offset:2px}
+a{color:#A9C0FF}
+a:hover{color:#C9D7FF}
+table{border-collapse:collapse}
+button{white-space:nowrap}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 0 96px;gap:24px">
+
+<sc-if value="{{ loggedOut }}" hint-placeholder-val="{{ true }}">
+  <main style="width:min(420px, calc(100% - 32px));margin-top:9vh;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span aria-hidden="true" style="width:40px;height:40px;border-radius:11px;background:#80A3FF;display:grid;place-items:center;flex:none"><span style="width:20px;height:20px;border-radius:50%;border:3px solid #0B1B1D;border-right-color:transparent;transform:rotate(-45deg);display:grid;place-items:center"><span style="width:5px;height:5px;border-radius:50%;background:#0B1B1D"></span></span></span>
+      <div style="display:flex;flex-direction:column">
+        <span style="font-size:20px;font-weight:700">RenewalDesk</span>
+        <span style="font-size:14px;color:#A9B8B9">Согласование продлений ресурсов</span>
+      </div>
+    </div>
+    <form onSubmit="{{ submitLogin }}" noValidate="{{ true }}" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:18px">
+      <h1 style="margin:0;font-size:32px;font-weight:700;line-height:1.15">Вход</h1>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label for="email" style="font-size:14px;color:#A9B8B9">Email</label>
+        <input id="email" type="text" inputMode="email" autoComplete="username" value="{{ loginEmail }}" onChange="{{ onLoginEmail }}" aria-invalid="{{ hasLoginError }}" aria-describedby="login-error" style="background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 12px;height:44px;font-size:15px"></input>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label for="password" style="font-size:14px;color:#A9B8B9">Пароль</label>
+        <div style="display:flex;gap:8px">
+          <input id="password" type="{{ passType }}" autoComplete="current-password" value="{{ loginPass }}" onChange="{{ onLoginPass }}" aria-invalid="{{ hasLoginError }}" aria-describedby="login-error" style="flex:1;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 12px;height:44px;font-size:15px"></input>
+          <button type="button" onClick="{{ togglePass }}" aria-pressed="{{ passShown }}" aria-label="{{ passToggleAria }}" style="flex:none;min-width:96px;height:44px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer;font-size:14px;color:#A9B8B9" style-hover="border-color:#A9B8B9;color:#F5F7F7">{{ passToggleLabel }}</button>
+        </div>
+      </div>
+      <div id="login-error" aria-live="assertive">
+        <sc-if value="{{ hasLoginError }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="border:1px solid rgba(255,156,138,0.4);background:rgba(255,156,138,0.08);border-radius:12px;padding:10px 12px;color:#FFB4A6;font-size:14px">{{ loginError }}</div>
+        </sc-if>
+      </div>
+      <button type="submit" disabled="{{ busy }}" style="background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;min-height:44px;font-weight:700;font-size:15px;cursor:pointer" style-hover="background:#9BB6FF" style-active="background:#6C8FEF">{{ loginBtn }}</button>
+    </form>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label for="demo-acc" style="font-size:14px;color:#A9B8B9">Демо-аккаунт · {{ datasetName }}</label>
+      <select id="demo-acc" value="{{ demoPick }}" onChange="{{ onDemoPick }}" style="background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:44px;font-size:14px">
+        <sc-for list="{{ demoAccountOptions }}" as="o" hint-placeholder-count="4">
+          <option value="{{ o.value }}">{{ o.label }}</option>
+        </sc-for>
+      </select>
+      <span style="font-size:13px;color:#A9B8B9">Выбор заполняет email и пароль. Сменить пользователя можно только повторным входом.</span>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ false }}">
+  <header style="width:min(1120px, calc(100% - clamp(32px, 4.45vw, 64px)));position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px">
+    <div style="display:flex;align-items:center;gap:24px;min-width:0">
+      <a href="#/overview" aria-label="RenewalDesk — обзор" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#F5F7F7;flex:none">
+        <span aria-hidden="true" style="width:28px;height:28px;border-radius:8px;background:#80A3FF;display:grid;place-items:center;flex:none"><span style="width:14px;height:14px;border-radius:50%;border:2.5px solid #0B1B1D;border-right-color:transparent;transform:rotate(-45deg);display:grid;place-items:center"><span style="width:4px;height:4px;border-radius:50%;background:#0B1B1D"></span></span></span>
+        <span style="font-weight:700;font-size:16px">RenewalDesk</span>
+      </a>
+      <sc-if value="{{ showDesktopNav }}" hint-placeholder-val="{{ true }}">
+        <nav aria-label="Основная навигация" style="display:flex;gap:4px">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+            <a href="{{ n.href }}" aria-current="{{ n.current }}" style="text-decoration:none;font-size:14px;padding:9px 12px;border-radius:10px;white-space:nowrap;color:{{ n.color }};background:{{ n.bg }}" style-hover="color:#F5F7F7">{{ n.label }}</a>
+          </sc-for>
+        </nav>
+      </sc-if>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex:none">
+      <span title="Рабочее пространство" style="font-size:13px;color:#A9B8B9;border:1px solid #2A3C3E;border-radius:999px;padding:4px 10px;white-space:nowrap">{{ wsLabel }}</span>
+      <sc-if value="{{ showDesktopNav }}" hint-placeholder-val="{{ true }}">
+        <button type="button" ref="{{ profileBtnRef }}" onClick="{{ toggleProfile }}" aria-haspopup="menu" aria-expanded="{{ profileOpen }}" aria-label="{{ profileAria }}" style="display:flex;align-items:center;gap:10px;background:transparent;border:1px solid #2A3C3E;border-radius:12px;padding:5px 12px 5px 6px;cursor:pointer;min-height:44px" style-hover="border-color:#A9B8B9">
+          <span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:#243537;display:grid;place-items:center;font-size:12px;font-weight:700">{{ userInitials }}</span>
+          <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">
+            <span style="font-size:14px">{{ userName }}</span>
+            <span style="font-size:12px;color:#A9B8B9">{{ userRole }}</span>
+          </span>
+          <span aria-hidden="true" style="color:#A9B8B9;font-size:11px">▾</span>
+        </button>
+      </sc-if>
+      <sc-if value="{{ showBurger }}" hint-placeholder-val="{{ false }}">
+        <button type="button" ref="{{ burgerRef }}" onClick="{{ toggleBurger }}" aria-expanded="{{ burgerOpen }}" aria-controls="mobile-menu" style="min-width:44px;height:44px;padding:0 12px;background:transparent;border:1px solid #2A3C3E;border-radius:12px;cursor:pointer;font-size:14px" style-hover="border-color:#A9B8B9">{{ burgerLabel }}</button>
+      </sc-if>
+    </div>
+    <sc-if value="{{ profileOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeProfile }}" style="position:fixed;inset:0;z-index:14"></div>
+      <div role="menu" aria-label="Профиль" style="position:absolute;right:0;top:calc(100% + 8px);z-index:15;width:280px;background:#1D2C2E;border:1px solid #2A3C3E;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 32px rgba(0,0,0,0.45)">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-weight:700">{{ userName }}</span>
+          <span style="font-size:13px;color:#A9B8B9;overflow-wrap:anywhere">{{ userEmail }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px">
+          <span style="color:#A9B8B9">Пространство</span><span>{{ wsLabel }}</span>
+          <span style="color:#A9B8B9">Роль</span><span>{{ userRole }}</span>
+        </div>
+        <span style="font-size:12px;color:#A9B8B9">Роли и пространство назначаются сервером. Чтобы сменить пользователя, выйдите и войдите снова.</span>
+        <button type="button" role="menuitem" onClick="{{ logout }}" style="min-height:40px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer" style-hover="border-color:#FF9C8A;color:#FFB4A6">Выйти</button>
+      </div>
+    </sc-if>
+  </header>
+
+  <sc-if value="{{ burgerOpen }}" hint-placeholder-val="{{ false }}">
+    <div id="mobile-menu" style="width:min(1120px, calc(100% - clamp(32px, 4.45vw, 64px)));background:#1D2C2E;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-top:-12px">
+      <nav aria-label="Основная навигация" style="display:flex;flex-direction:column;gap:4px">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+          <a href="{{ n.href }}" aria-current="{{ n.current }}" style="text-decoration:none;font-size:15px;padding:0 12px;min-height:44px;display:flex;align-items:center;border-radius:10px;color:{{ n.color }};background:{{ n.mobileBg }}">{{ n.label }}</a>
+        </sc-for>
+      </nav>
+      <div style="border-top:1px solid #2A3C3E;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;min-width:0">
+          <span style="font-size:14px">{{ userName }}</span>
+          <span style="font-size:13px;color:#A9B8B9">{{ userRole }} · {{ wsLabel }}</span>
+        </div>
+        <button type="button" onClick="{{ logout }}" style="min-height:44px;padding:0 16px;background:transparent;border:1px solid #3A4F52;border-radius:12px;cursor:pointer">Выйти</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="width:min(1120px, calc(100% - clamp(32px, 4.45vw, 64px)));display:flex;flex-direction:column;gap:16px">
+
+    <sc-if value="{{ showListHeading }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1 ref="{{ headingRef }}" tabIndex="-1" style="margin:0;font-size:32px;font-weight:700;line-height:1.15;text-wrap:pretty;outline:none">{{ pageTitle }}</h1>
+        <p style="margin:0;color:#A9B8B9;font-size:15px">{{ pageSub }}</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ viewLoading }}" hint-placeholder-val="{{ false }}">
+      <div role="status" aria-live="polite" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:10px">
+        <span style="color:#A9B8B9;font-size:14px">Загрузка данных…</span>
+        <div style="height:40px;border-radius:10px;background:#243537"></div>
+        <div style="height:40px;border-radius:10px;background:#223234"></div>
+        <div style="height:40px;border-radius:10px;background:#203032"></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ viewError }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px">
+        <div style="border:1px solid rgba(255,156,138,0.4);background:rgba(255,156,138,0.08);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px">
+          <span style="font-weight:700;color:#FFB4A6">{{ viewErrorTitle }}</span>
+          <span style="font-size:14px">{{ viewErrorText }}</span>
+          <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">error_code: {{ viewErrorCode }}</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ viewErrorRetryable }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ retryView }}" style="min-height:44px;padding:0 18px;background:transparent;border:1px solid #80A3FF;color:#A9C0FF;border-radius:12px;cursor:pointer" style-hover="background:rgba(128,163,255,0.12)">Повторить</button>
+          </sc-if>
+          <a href="#/requests" style="min-height:44px;padding:0 18px;display:inline-flex;align-items:center;border:1px solid #3A4F52;border-radius:12px;text-decoration:none;color:#F5F7F7">К списку заявок</a>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ОБЗОР -->
+    <sc-if value="{{ showOverview }}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr));gap:16px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <a href="{{ k.href }}" style="background:#1D2C2E;border:1px solid #1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:#F5F7F7" style-hover="border-color:#33474A;color:#F5F7F7">
+            <span style="font-size:14px;color:#A9B8B9">{{ k.label }}</span>
+            <span style="font-size:32px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:{{ k.valueColor }}">{{ k.value }}</span>
+            <span style="font-size:13px;color:#A9B8B9">{{ k.hint }}</span>
+          </a>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 460px), 1fr));gap:16px">
+        <section aria-labelledby="ov-decide" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 id="ov-decide" style="margin:0;font-size:18px;font-weight:700">{{ decisionTitle }}</h2>
+            <a href="#/requests" style="font-size:14px">Все заявки →</a>
+          </div>
+          <sc-if value="{{ noDecisionItems }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;padding:12px 0;color:#A9B8B9;font-size:14px;border-top:1px solid #2A3C3E">{{ decisionEmpty }}</p>
+          </sc-if>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ decisionItems }}" as="it" hint-placeholder-count="2">
+              <a href="{{ it.href }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 8px;margin:0 -8px;border-top:1px solid #2A3C3E;text-decoration:none;color:#F5F7F7;border-radius:8px" style-hover="background:#243537;color:#F5F7F7">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;overflow-wrap:anywhere">{{ it.title }}</span><span style="font-size:13px;color:#A9B8B9">{{ it.sub }}</span></span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;flex:none;color:{{ it.chip.c }};background:{{ it.chip.bg }}"><span aria-hidden="true">{{ it.chip.glyph }}</span><span>{{ it.chip.label }}</span></span>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+        <section aria-labelledby="ov-recent" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 id="ov-recent" style="margin:0;font-size:18px;font-weight:700">Последние заявки</h2>
+            <a href="#/requests" style="font-size:14px">Все заявки →</a>
+          </div>
+          <sc-if value="{{ noRecentReqs }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;padding:12px 0;color:#A9B8B9;font-size:14px;border-top:1px solid #2A3C3E">Заявок пока нет.</p>
+          </sc-if>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ recentReqs }}" as="it" hint-placeholder-count="3">
+              <a href="{{ it.href }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 8px;margin:0 -8px;border-top:1px solid #2A3C3E;text-decoration:none;color:#F5F7F7;border-radius:8px" style-hover="background:#243537;color:#F5F7F7">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;overflow-wrap:anywhere">{{ it.title }}</span><span style="font-size:13px;color:#A9B8B9">{{ it.sub }}</span></span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;flex:none;color:{{ it.chip.c }};background:{{ it.chip.bg }}"><span aria-hidden="true">{{ it.chip.glyph }}</span><span>{{ it.chip.label }}</span></span>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+        <section aria-labelledby="ov-exp" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 id="ov-exp" style="margin:0;font-size:18px;font-weight:700">Ближайшие сроки окончания</h2>
+            <a href="#/resources" style="font-size:14px">Все ресурсы →</a>
+          </div>
+          <sc-if value="{{ noExpiring }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;padding:12px 0;color:#A9B8B9;font-size:14px;border-top:1px solid #2A3C3E">В пространстве нет ресурсов.</p>
+          </sc-if>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ expiring }}" as="it" hint-placeholder-count="3">
+              <button type="button" onClick="{{ it.open }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 8px;margin:0 -8px;border:0;border-top:1px solid #2A3C3E;background:transparent;text-align:left;cursor:pointer;border-radius:8px;width:calc(100% + 16px)" style-hover="background:#243537">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;overflow-wrap:anywhere">{{ it.title }}</span><span style="font-size:13px;color:#A9B8B9">{{ it.sub }}</span></span>
+                <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none"><span style="font-size:15px;font-variant-numeric:tabular-nums">{{ it.date }}</span><span style="font-size:13px;color:{{ it.leftColor }}">{{ it.left }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+        <section aria-labelledby="ov-ev" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 id="ov-ev" style="margin:0;font-size:18px;font-weight:700">Последние события</h2>
+            <a href="#/audit" style="font-size:14px">История операций →</a>
+          </div>
+          <sc-if value="{{ noRecentEvents }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;padding:12px 0;color:#A9B8B9;font-size:14px;border-top:1px solid #2A3C3E">Событий пока нет.</p>
+          </sc-if>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ recentEvents }}" as="it" hint-placeholder-count="3">
+              <a href="{{ it.href }}" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 8px;margin:0 -8px;border-top:1px solid #2A3C3E;text-decoration:none;color:#F5F7F7;border-radius:8px" style-hover="background:#243537;color:#F5F7F7">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px">{{ it.title }}</span><span style="font-size:13px;color:#A9B8B9;overflow-wrap:anywhere">{{ it.sub }}</span></span>
+                <span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;font-size:13px;color:#A9B8B9"><span>{{ it.time }}</span><span>{{ it.by }}</span></span>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- РЕСУРСЫ -->
+    <sc-if value="{{ showResources }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Ресурсы пространства" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input type="search" aria-label="Поиск по названию или ID ресурса" placeholder="Поиск по названию или ID" value="{{ resQ }}" onChange="{{ onResQ }}" style="flex:1 1 220px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 12px;height:40px;font-size:14px"></input>
+          <select aria-label="Категория" value="{{ resCat }}" onChange="{{ onResCat }}" style="flex:0 1 220px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <sc-for list="{{ catOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <select aria-label="Активная заявка" value="{{ resActive }}" onChange="{{ onResActive }}" style="flex:0 1 200px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <option value="all">Все ресурсы</option>
+            <option value="active">С активной заявкой</option>
+            <option value="none">Без активной заявки</option>
+          </select>
+          <select aria-label="Сортировка" value="{{ resSort }}" onChange="{{ onResSort }}" style="flex:0 1 200px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <option value="exp_asc">Срок: ближайшие</option>
+            <option value="exp_desc">Срок: дальние</option>
+            <option value="amt_asc">Стоимость: по возрастанию</option>
+            <option value="amt_desc">Стоимость: по убыванию</option>
+          </select>
+        </div>
+        <span role="status" style="font-size:14px;color:#A9B8B9">{{ resCount }}</span>
+
+        <sc-if value="{{ resNoData }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:28px 20px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-weight:700;font-size:16px">В пространстве нет ресурсов</span>
+            <span style="color:#A9B8B9;font-size:14px">Когда ресурсы появятся, здесь можно будет создать заявку на продление.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ resNoMatch }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:24px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span style="color:#A9B8B9;font-size:14px">По заданным условиям ресурсов не найдено.</span>
+            <button type="button" onClick="{{ resetResFilters }}" style="min-height:40px;padding:0 14px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer" style-hover="border-color:#A9B8B9">Сбросить фильтры</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ resTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:15px">
+              <thead><tr>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Ресурс</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Категория</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Срок</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Стоимость</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Заявка</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Действие</span></th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ resRows }}" as="r" hint-placeholder-count="3">
+                  <tr onClick="{{ r.open }}" style="cursor:pointer" style-hover="background:#243537">
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;max-width:340px">
+                      <button type="button" onClick="{{ r.openBtn }}" aria-label="{{ r.aria }}" style="background:transparent;border:0;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px">
+                        <span style="font-size:15px;overflow-wrap:anywhere">{{ r.name }}</span>
+                        <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">{{ r.id }}</span>
+                      </button>
+                    </td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-size:14px;color:#A9B8B9">{{ r.category }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.date }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.money }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;color:{{ r.chip.c }};background:{{ r.chip.bg }}"><span aria-hidden="true">{{ r.chip.glyph }}</span><span>{{ r.chip.label }}</span></span></td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;text-align:right;white-space:nowrap">
+                      <sc-if value="{{ r.canExtend }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ r.extend }}" style="min-height:36px;padding:0 14px;background:transparent;border:1px solid #80A3FF;color:#A9C0FF;border-radius:10px;cursor:pointer;font-size:14px" style-hover="background:rgba(128,163,255,0.12)">Продлить</button></sc-if>
+                      <sc-if value="{{ r.hasActive }}" hint-placeholder-val="{{ false }}"><a href="{{ r.activeHref }}" onClick="{{ r.stop }}" style="font-size:14px">{{ r.activeLabel }}</a></sc-if>
+                      <sc-if value="{{ r.showDetails }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#A9B8B9">Подробнее →</span></sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ resCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ resRows }}" as="r" hint-placeholder-count="3">
+              <div style="background:#172729;border:1px solid #2A3C3E;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+                <button type="button" onClick="{{ r.openBtn }}" aria-label="{{ r.aria }}" style="background:transparent;border:0;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:16px;overflow-wrap:anywhere">{{ r.name }}</span>
+                  <span style="font-size:13px;color:#A9B8B9"><span style="font-family:Menlo,Consolas,monospace">{{ r.id }}</span> · {{ r.category }}</span>
+                </button>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px">
+                  <span><span style="color:#A9B8B9">Срок</span> {{ r.date }}</span>
+                  <span><span style="color:#A9B8B9">Стоимость</span> {{ r.money }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;color:{{ r.chip.c }};background:{{ r.chip.bg }}"><span aria-hidden="true">{{ r.chip.glyph }}</span><span>{{ r.chip.label }}</span></span>
+                  <sc-if value="{{ r.canExtend }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ r.extend }}" style="min-height:44px;padding:0 16px;background:transparent;border:1px solid #80A3FF;color:#A9C0FF;border-radius:12px;cursor:pointer">Продлить</button></sc-if>
+                  <sc-if value="{{ r.hasActive }}" hint-placeholder-val="{{ false }}"><a href="{{ r.activeHref }}" style="font-size:14px;min-height:44px;display:inline-flex;align-items:center">{{ r.activeLabel }}</a></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    <!-- ЗАЯВКИ -->
+    <sc-if value="{{ showRequests }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Заявки на продление" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;gap:8px 24px;flex-wrap:wrap;font-size:15px">
+          <span><span style="color:#A9B8B9">Всего:</span> {{ reqStats.total }}</span>
+          <span><span style="color:#A9B8B9">Ожидают:</span> {{ reqStats.pending }}</span>
+          <span><span style="color:#A9B8B9">Выполняется:</span> {{ reqStats.processing }}</span>
+          <sc-if value="{{ reqStats.hasAttention }}" hint-placeholder-val="{{ false }}"><span style="color:#FF9C8A">Требует внимания: {{ reqStats.attention }}</span></sc-if>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <input type="search" aria-label="Поиск по ID заявки, ресурсу или инициатору" placeholder="Поиск: ID, ресурс, инициатор" value="{{ reqQ }}" onChange="{{ onReqQ }}" style="flex:1 1 240px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 12px;height:40px;font-size:14px"></input>
+          <select aria-label="Сортировка по дате создания" value="{{ reqSort }}" onChange="{{ onReqSort }}" style="flex:0 1 200px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <option value="new">Сначала новые</option>
+            <option value="old">Сначала старые</option>
+          </select>
+        </div>
+        <div role="group" aria-label="Фильтр по статусу" style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-for list="{{ statusChips }}" as="c" hint-placeholder-count="6">
+            <button type="button" aria-pressed="{{ c.on }}" onClick="{{ c.pick }}" style="min-height:36px;border-radius:999px;padding:0 12px;cursor:pointer;font-size:13px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.color }}">{{ c.label }}</button>
+          </sc-for>
+        </div>
+        <span role="status" style="font-size:14px;color:#A9B8B9">{{ reqCount }}</span>
+
+        <sc-if value="{{ reqNoData }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:28px 20px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-weight:700;font-size:16px">Заявок пока нет</span>
+            <span style="color:#A9B8B9;font-size:14px">{{ reqEmptyHint }}</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ reqNoMatch }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:24px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span style="color:#A9B8B9;font-size:14px">По заданным условиям заявок не найдено.</span>
+            <button type="button" onClick="{{ resetReqFilters }}" style="min-height:40px;padding:0 14px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer" style-hover="border-color:#A9B8B9">Сбросить фильтры</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ reqTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:15px">
+              <thead><tr>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Ресурс</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Срок</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Стоимость</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Статус</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Инициатор</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Создана</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Действие</span></th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ reqRows }}" as="r" hint-placeholder-count="3">
+                  <tr onClick="{{ r.open }}" style="cursor:pointer" style-hover="background:#243537">
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;max-width:300px">
+                      <div style="display:flex;flex-direction:column;gap:2px">
+                        <span style="overflow-wrap:anywhere">{{ r.resourceName }}</span>
+                        <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">{{ r.id }} · {{ r.resourceId }}</span>
+                      </div>
+                    </td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-variant-numeric:tabular-nums;white-space:nowrap">
+                      <div style="display:flex;flex-direction:column;gap:2px"><span>{{ r.newDate }}</span><span style="font-size:13px;color:#A9B8B9">было {{ r.prevDate }}</span></div>
+                    </td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.money }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E"><span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;color:{{ r.chip.c }};background:{{ r.chip.bg }}"><span aria-hidden="true">{{ r.chip.glyph }}</span><span>{{ r.chip.label }}</span></span></td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-size:14px;color:#A9B8B9">{{ r.creator }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;font-size:14px;color:#A9B8B9;white-space:nowrap">{{ r.created }}</td>
+                    <td style="padding:14px 12px;border-bottom:1px solid #2A3C3E;text-align:right;white-space:nowrap"><a href="{{ r.href }}" onClick="{{ r.stop }}" aria-label="{{ r.aria }}" style="font-size:14px">Открыть →</a></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ reqCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ reqRows }}" as="r" hint-placeholder-count="3">
+              <a href="{{ r.href }}" aria-label="{{ r.aria }}" style="background:#172729;border:1px solid #2A3C3E;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:#F5F7F7" style-hover="border-color:#80A3FF;color:#F5F7F7">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:16px;overflow-wrap:anywhere">{{ r.resourceName }}</span>
+                    <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">{{ r.id }}</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;color:{{ r.chip.c }};background:{{ r.chip.bg }}"><span aria-hidden="true">{{ r.chip.glyph }}</span><span>{{ r.chip.label }}</span></span>
+                </div>
+                <div style="display:flex;gap:6px 16px;flex-wrap:wrap;font-size:14px">
+                  <span><span style="color:#A9B8B9">Срок</span> {{ r.prevDate }} → {{ r.newDate }}</span>
+                  <span><span style="color:#A9B8B9">Стоимость</span> {{ r.money }}</span>
+                  <span style="color:#A9B8B9">{{ r.creator }} · {{ r.created }}</span>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <sc-if value="{{ canCreate }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ openCreate }}" style="background:#F5F7F7;color:#0B1B1D;border:1px solid #F5F7F7;border-radius:999px;padding:0 22px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#FFFFFF" style-active="background:#DDE3E3">Создать заявку</button>
+          </sc-if>
+          <span style="color:#A9B8B9;font-size:14px">{{ reqHint }}</span>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ДЕТАЛИ ЗАЯВКИ -->
+    <sc-if value="{{ showRequest }}" hint-placeholder-val="{{ false }}">
+      <a href="#/requests" style="font-size:14px;align-self:flex-start;min-height:32px;display:inline-flex;align-items:center">← Заявки на продление</a>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 420px">
+          <span style="font-size:14px;color:#A9B8B9"><span style="font-family:Menlo,Consolas,monospace;color:#F5F7F7">{{ rq.id }}</span> · создана {{ rq.created }}</span>
+          <h1 ref="{{ headingRef }}" tabIndex="-1" style="margin:0;font-size:32px;font-weight:700;line-height:1.15;overflow-wrap:anywhere;text-wrap:pretty;outline:none">{{ rq.resourceName }}</h1>
+          <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:6px;font-size:14px;border-radius:999px;padding:4px 12px;white-space:nowrap;color:{{ rq.chip.c }};background:{{ rq.chip.bg }}"><span aria-hidden="true">{{ rq.chip.glyph }}</span><span>{{ rq.chip.label }}</span></span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ rq.canApprove }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ openApprove }}" style="background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#9BB6FF">Согласовать…</button>
+          </sc-if>
+          <sc-if value="{{ rq.canReject }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ openReject }}" style="background:transparent;border:1px solid #3A4F52;border-radius:12px;padding:0 18px;min-height:44px;cursor:pointer" style-hover="border-color:#FF9C8A;color:#FFB4A6">Отклонить…</button>
+          </sc-if>
+          <sc-if value="{{ rq.canRetry }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ openRetry }}" style="background:transparent;border:1px solid #80A3FF;color:#A9C0FF;border-radius:12px;padding:0 18px;min-height:44px;cursor:pointer" style-hover="background:rgba(128,163,255,0.12)">Повторить обработку…</button>
+          </sc-if>
+        </div>
+      </div>
+      <div role="status" style="font-size:14px;border-radius:14px;padding:12px 16px;color:{{ rq.noteColor }};background:{{ rq.noteBg }};border:1px solid {{ rq.noteBorder }}">{{ rq.note }}</div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr));gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <section aria-labelledby="rq-term" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <h2 id="rq-term" style="margin:0;font-size:18px;font-weight:700">Срок продления</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:10px;align-items:stretch">
+              <div style="background:#132427;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:13px;color:#A9B8B9">Прежний срок · снимок</span>
+                <span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">{{ rq.prevDate }}</span>
+              </div>
+              <div style="border:1px dashed #33474A;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;justify-content:center;align-items:center;text-align:center">
+                <span aria-hidden="true" style="font-size:18px;color:#A9C0FF">→</span>
+                <span style="font-size:13px;color:#A9B8B9">+30 календарных дней</span>
+              </div>
+              <div style="background:#132427;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:13px;color:#A9B8B9">Новый срок · запрошен</span>
+                <span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">{{ rq.newDate }}</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #2A3C3E;padding-top:14px">
+              <span style="font-size:14px"><span style="color:#A9B8B9">Текущий срок ресурса:</span> <span style="font-variant-numeric:tabular-nums">{{ rq.currentDate }}</span></span>
+              <span style="font-size:13px;border-radius:999px;padding:3px 10px;color:{{ rq.termC }};background:{{ rq.termBg }}">{{ rq.termState }}</span>
+            </div>
+          </section>
+
+          <section aria-labelledby="rq-hist" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <h2 id="rq-hist" style="margin:0;font-size:18px;font-weight:700">История</h2>
+            <ol style="list-style:none;margin:0 0 0 5px;padding:0 0 0 20px;border-left:2px solid #33474A;display:flex;flex-direction:column;gap:16px">
+              <sc-for list="{{ rqTimeline }}" as="t" hint-placeholder-count="3">
+                <li style="position:relative;display:flex;flex-direction:column;gap:2px">
+                  <span aria-hidden="true" style="position:absolute;left:-27px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid #1D2C2E;background:{{ t.dot }}"></span>
+                  <span style="font-size:15px;font-weight:700">{{ t.title }}</span>
+                  <sc-if value="{{ t.hasTransition }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#C9D7FF">{{ t.transition }}</span></sc-if>
+                  <sc-if value="{{ t.hasDetail }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#F5F7F7">{{ t.detail }}</span></sc-if>
+                  <sc-if value="{{ t.hasResult }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-family:Menlo,Consolas,monospace;color:{{ t.resultColor }};overflow-wrap:anywhere">{{ t.result }}</span></sc-if>
+                  <span style="font-size:13px;color:#A9B8B9">{{ t.time }} · {{ t.by }}</span>
+                </li>
+              </sc-for>
+            </ol>
+          </section>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <section aria-labelledby="rq-info" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <h2 id="rq-info" style="margin:0;font-size:18px;font-weight:700">Сведения</h2>
+            <dl style="margin:0;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:10px 16px;font-size:14px">
+              <sc-for list="{{ rqInfo }}" as="i" hint-placeholder-count="6">
+                <dt style="color:#A9B8B9">{{ i.label }}</dt>
+                <dd style="margin:0;overflow-wrap:anywhere;font-family:{{ i.font }}">{{ i.value }}</dd>
+              </sc-for>
+            </dl>
+            <button type="button" onClick="{{ rq.openResource }}" style="align-self:flex-start;min-height:40px;padding:0 14px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer;font-size:14px" style-hover="border-color:#A9B8B9">Карточка ресурса</button>
+          </section>
+          <sc-if value="{{ rq.showExec }}" hint-placeholder-val="{{ false }}">
+            <section aria-labelledby="rq-exec" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px">
+              <h2 id="rq-exec" style="margin:0;font-size:18px;font-weight:700">Выполнение</h2>
+              <dl style="margin:0;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:10px 16px;font-size:14px">
+                <sc-for list="{{ rqExec }}" as="i" hint-placeholder-count="5">
+                  <dt style="color:#A9B8B9">{{ i.label }}</dt>
+                  <dd style="margin:0;overflow-wrap:anywhere;font-family:{{ i.font }};color:{{ i.color }}">{{ i.value }}</dd>
+                </sc-for>
+              </dl>
+              <span style="font-size:13px;color:#A9B8B9">GET-проверки результата не увеличивают счётчик POST-попыток. Ключ операции и payload не меняются между попытками.</span>
+            </section>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ИСТОРИЯ ОПЕРАЦИЙ -->
+    <sc-if value="{{ showAudit }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Журнал операций" style="background:#1D2C2E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select aria-label="Ресурс" value="{{ audRes }}" onChange="{{ onAudRes }}" style="flex:1 1 220px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <sc-for list="{{ audResOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <select aria-label="Тип события" value="{{ audType }}" onChange="{{ onAudType }}" style="flex:1 1 200px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <sc-for list="{{ audTypeOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <select aria-label="Период" value="{{ audPeriod }}" onChange="{{ onAudPeriod }}" style="flex:0 1 180px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:40px;font-size:14px">
+            <option value="all">За всё время</option>
+            <option value="1">За сутки</option>
+            <option value="7">За 7 дней</option>
+            <option value="30">За 30 дней</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;color:#A9B8B9">
+          <span role="status">{{ audCount }}</span>
+          <span>Журнал доступен только для просмотра</span>
+        </div>
+        <sc-if value="{{ audNoMatch }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:24px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span style="color:#A9B8B9;font-size:14px">{{ audEmptyText }}</span>
+            <sc-if value="{{ audFiltered }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ resetAudFilters }}" style="min-height:40px;padding:0 14px;background:transparent;border:1px solid #3A4F52;border-radius:10px;cursor:pointer" style-hover="border-color:#A9B8B9">Сбросить фильтры</button></sc-if>
+          </div>
+        </sc-if>
+        <sc-if value="{{ audTable }}" hint-placeholder-val="{{ true }}">
+          <div style="overflow-x:auto">
+            <table style="width:100%;font-size:14px">
+              <thead><tr>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Дата и время</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Событие</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Ресурс · заявка</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Автор</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Переход</th>
+                <th scope="col" style="text-align:left;font-weight:400;color:#A9B8B9;font-size:14px;padding:10px 12px;border-bottom:1px solid #2F4244">Результат</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ audRows }}" as="r" hint-placeholder-count="4">
+                  <tr style-hover="background:#243537">
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E;white-space:nowrap;color:#A9B8B9;font-variant-numeric:tabular-nums">{{ r.time }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E">{{ r.type }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E;max-width:260px">
+                      <div style="display:flex;flex-direction:column;gap:2px"><span style="overflow-wrap:anywhere">{{ r.resource }}</span><a href="{{ r.href }}" style="font-family:Menlo,Consolas,monospace;font-size:13px">{{ r.reqId }}</a></div>
+                    </td>
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E;color:#A9B8B9">{{ r.by }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E;color:#A9B8B9">{{ r.transition }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #2A3C3E;font-family:Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere;color:{{ r.resultColor }}">{{ r.result }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+        <sc-if value="{{ audCards }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ audRows }}" as="r" hint-placeholder-count="4">
+              <div style="background:#172729;border:1px solid #2A3C3E;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:14px">
+                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="font-weight:700">{{ r.type }}</span><span style="color:#A9B8B9;font-size:13px">{{ r.time }}</span></div>
+                <span style="overflow-wrap:anywhere">{{ r.resource }} · <a href="{{ r.href }}" style="font-family:Menlo,Consolas,monospace;font-size:13px">{{ r.reqId }}</a></span>
+                <span style="color:#A9B8B9">{{ r.by }} · {{ r.transition }}</span>
+                <span style="font-family:Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere;color:{{ r.resultColor }}">{{ r.result }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+  </div>
+</sc-if>
+
+<!-- DRAWER -->
+<sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(4,12,13,0.6);z-index:20"></div>
+  <aside ref="{{ drawerRef }}" onKeyDown="{{ drawerKeys }}" role="dialog" aria-modal="true" aria-labelledby="drawer-title" style="position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:#132427;border-left:1px solid #2A3C3E;z-index:21;overflow-y:auto;overflow-x:hidden;padding:24px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">{{ drawerKicker }}</span>
+        <h2 id="drawer-title" style="margin:0;font-size:24px;font-weight:700;line-height:1.2;overflow-wrap:anywhere">{{ drawerTitle }}</h2>
+      </div>
+      <button type="button" ref="{{ drawerCloseRef }}" aria-label="Закрыть" onClick="{{ closeDrawer }}" style="flex:none;width:44px;height:44px;border-radius:10px;background:transparent;border:1px solid #2A3C3E;cursor:pointer;font-size:18px;line-height:1" style-hover="border-color:#A9B8B9">✕</button>
+    </div>
+
+    <sc-if value="{{ drawerLoading }}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="display:flex;flex-direction:column;gap:10px">
+        <span style="color:#A9B8B9;font-size:14px">Загрузка…</span>
+        <div style="height:72px;border-radius:14px;background:#1D2C2E"></div>
+        <div style="height:140px;border-radius:14px;background:#1A2A2C"></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ drawerError }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="border:1px solid rgba(255,156,138,0.4);background:rgba(255,156,138,0.08);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-weight:700;color:#FFB4A6">{{ drawerErrorTitle }}</span>
+        <span style="font-size:14px">{{ drawerErrorText }}</span>
+        <span style="font-size:13px;color:#A9B8B9;font-family:Menlo,Consolas,monospace">error_code: {{ drawerErrorCode }}</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ drawerResReady }}" hint-placeholder-val="{{ false }}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#1D2C2E;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+          <span style="color:#A9B8B9;font-size:13px">Текущий срок</span>
+          <span style="font-size:18px;font-variant-numeric:tabular-nums">{{ dr.date }}</span>
+        </div>
+        <div style="background:#1D2C2E;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+          <span style="color:#A9B8B9;font-size:13px">Стоимость продления</span>
+          <span style="font-size:18px;font-variant-numeric:tabular-nums">{{ dr.money }}</span>
+        </div>
+      </div>
+      <span style="font-size:14px;color:#A9B8B9">Категория: {{ dr.category }}</span>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <sc-if value="{{ dr.canCreate }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ dr.create }}" style="align-self:flex-start;background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#9BB6FF">Создать заявку на +30 дней</button>
+        </sc-if>
+        <sc-if value="{{ dr.hasCreateNote }}" hint-placeholder-val="{{ false }}">
+          <span style="color:#A9B8B9;font-size:14px">{{ dr.createNote }}</span>
+        </sc-if>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <h3 style="margin:0;font-size:16px;font-weight:700">История заявок</h3>
+        <sc-if value="{{ dr.noRequests }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:20px 16px;color:#A9B8B9;font-size:14px">Заявок по этому ресурсу пока нет.</div>
+        </sc-if>
+        <sc-for list="{{ dr.requests }}" as="q" hint-placeholder-count="1">
+          <a href="{{ q.href }}" style="background:#1D2C2E;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:#F5F7F7;border:1px solid #1D2C2E" style-hover="border-color:#80A3FF;color:#F5F7F7">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="font-family:Menlo,Consolas,monospace;font-size:14px">{{ q.id }}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:999px;padding:3px 10px;white-space:nowrap;color:{{ q.chip.c }};background:{{ q.chip.bg }}"><span aria-hidden="true">{{ q.chip.glyph }}</span><span>{{ q.chip.label }}</span></span>
+            </div>
+            <span style="font-size:14px;font-variant-numeric:tabular-nums">{{ q.prevDate }} → {{ q.newDate }} · {{ q.money }}</span>
+            <span style="font-size:13px;color:#A9B8B9">{{ q.creator }} · {{ q.created }} · Открыть →</span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ drawerCreate }}" hint-placeholder-val="{{ false }}">
+      <form onSubmit="{{ submitCreate }}" style="display:flex;flex-direction:column;gap:16px">
+        <sc-if value="{{ noCreateOptions }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed #33474A;border-radius:14px;padding:16px;color:#A9B8B9;font-size:14px">У всех ресурсов пространства уже есть активная заявка. Новую можно создать после её завершения или отклонения.</div>
+        </sc-if>
+        <sc-if value="{{ hasCreateOptions }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label for="res-select" style="font-size:14px;color:#A9B8B9">Ресурс</label>
+            <select id="res-select" value="{{ createValue }}" onChange="{{ onCreateChange }}" style="background:#1D2C2E;border:1px solid #2A3C3E;border-radius:10px;padding:0 10px;height:44px;font-size:14px">
+              <sc-for list="{{ createOptions }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+            </select>
+          </div>
+          <div style="background:#1D2C2E;border-radius:14px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px">
+            <span style="color:#A9B8B9">Текущий срок</span><span>{{ preview.oldDate }}</span>
+            <span style="color:#A9B8B9">Новый срок</span><span>{{ preview.newDate }} <span style="color:#A9B8B9">(+30 календарных дней)</span></span>
+            <span style="color:#A9B8B9">Стоимость</span><span>{{ preview.money }}</span>
+          </div>
+          <span style="color:#A9B8B9;font-size:13px">Срок и стоимость фиксируются в заявке. Перед отправкой провайдеру они будут сверены с ресурсом.</span>
+        </sc-if>
+        <sc-if value="{{ hasCreateError }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="border:1px solid rgba(255,156,138,0.4);background:rgba(255,156,138,0.08);border-radius:12px;padding:12px 14px;color:#FFB4A6;font-size:14px">{{ createError }}</div>
+        </sc-if>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ hasCreateOptions }}" hint-placeholder-val="{{ true }}">
+            <button type="submit" disabled="{{ createBusy }}" style="background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#9BB6FF">{{ createBtn }}</button>
+          </sc-if>
+          <button type="button" onClick="{{ closeDrawer }}" style="background:transparent;border:1px solid #3A4F52;border-radius:12px;padding:0 18px;min-height:44px;cursor:pointer" style-hover="border-color:#A9B8B9">Отмена</button>
+        </div>
+      </form>
+    </sc-if>
+  </aside>
+</sc-if>
+
+<!-- CONFIRM DIALOG -->
+<sc-if value="{{ dialogOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeDialog }}" style="position:fixed;inset:0;background:rgba(4,12,13,0.7);z-index:30"></div>
+  <div ref="{{ dialogRef }}" onKeyDown="{{ dialogKeys }}" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-desc" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:31;width:min(520px, calc(100% - 32px));max-height:calc(100vh - 32px);overflow-y:auto;overflow-x:hidden;background:#1D2C2E;border:1px solid #2A3C3E;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,0.5)">
+    <h2 id="dlg-title" style="margin:0;font-size:24px;font-weight:700;line-height:1.2">{{ dialogTitle }}</h2>
+    <div style="background:#132427;border-radius:14px;padding:16px;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:8px 16px;font-size:14px">
+      <span style="color:#A9B8B9">Заявка</span><span style="font-family:Menlo,Consolas,monospace">{{ dlg.id }}</span>
+      <span style="color:#A9B8B9">Ресурс</span><span style="overflow-wrap:anywhere">{{ dlg.resource }}</span>
+      <span style="color:#A9B8B9">Прежний срок</span><span>{{ dlg.prevDate }}</span>
+      <span style="color:#A9B8B9">Новый срок</span><span>{{ dlg.newDate }}</span>
+      <span style="color:#A9B8B9">Стоимость</span><span>{{ dlg.money }}</span>
+      <sc-if value="{{ dialogIsRetry }}" hint-placeholder-val="{{ false }}"><span style="color:#A9B8B9">Ключ операции</span><span style="font-family:Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere">{{ dlg.key }}</span></sc-if>
+    </div>
+    <p id="dlg-desc" style="margin:0;font-size:15px;text-wrap:pretty">{{ dialogText }}</p>
+    <sc-if value="{{ dialogHasError }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="border:1px solid rgba(255,156,138,0.4);background:rgba(255,156,138,0.08);border-radius:12px;padding:12px 14px;color:#FFB4A6;font-size:14px">{{ dialogError }}</div>
+    </sc-if>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" ref="{{ dialogCancelRef }}" onClick="{{ closeDialog }}" disabled="{{ dialogBusy }}" style="background:transparent;border:1px solid #3A4F52;border-radius:12px;padding:0 18px;min-height:44px;cursor:pointer" style-hover="border-color:#A9B8B9">Отмена</button>
+      <sc-if value="{{ dialogIsApprove }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ dialogConfirm }}" disabled="{{ dialogBusy }}" aria-busy="{{ dialogBusy }}" style="background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#9BB6FF">{{ dialogConfirmLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ dialogIsReject }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ dialogConfirm }}" disabled="{{ dialogBusy }}" aria-busy="{{ dialogBusy }}" style="background:#FF9C8A;color:#0B1B1D;border:1px solid #FF9C8A;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#FFB4A6">{{ dialogConfirmLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ dialogIsRetry }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ dialogConfirm }}" disabled="{{ dialogBusy }}" aria-busy="{{ dialogBusy }}" style="background:#80A3FF;color:#0B1B1D;border:1px solid #80A3FF;border-radius:12px;padding:0 18px;min-height:44px;font-weight:700;cursor:pointer" style-hover="background:#9BB6FF">{{ dialogConfirmLabel }}</button>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<!-- DEVELOPER / DEMO TOOLS -->
+<div style="position:fixed;right:16px;bottom:16px;z-index:40;display:flex;flex-direction:column;align-items:flex-end;gap:10px;max-width:calc(100% - 32px)">
+  <sc-if value="{{ devOpen }}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Developer / Demo Tools" style="width:min(380px, calc(100vw - 32px));max-height:min(720px, calc(100vh - 90px));overflow-y:auto;background:#0F2123;border:1px dashed #4A6266;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);font-size:13px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-family:Menlo,Consolas,monospace;font-size:11px;border:1px solid #4A6266;border-radius:6px;padding:1px 6px;color:#F2C46B">DEV</span><span style="font-weight:700;font-size:14px">Developer / Demo Tools</span></div>
+        <span style="color:#A9B8B9">Не часть продукта. В реальном приложении заменяется тестовыми сценариями, CLI-командами и отдельным демо-режимом.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="color:#A9B8B9">Набор данных</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-for list="{{ datasetOpts }}" as="o" hint-placeholder-count="2"><button type="button" aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="border-radius:999px;padding:6px 12px;cursor:pointer;border:1px solid {{ o.border }};background:{{ o.bg }};color:{{ o.color }}">{{ o.label }}</button></sc-for>
+        </div>
+        <span style="color:#A9B8B9">{{ datasetHint }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="color:#A9B8B9">Провайдер · ответ на POST</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-for list="{{ providerOpts }}" as="o" hint-placeholder-count="2"><button type="button" aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="border-radius:999px;padding:6px 12px;cursor:pointer;border:1px solid {{ o.border }};background:{{ o.bg }};color:{{ o.color }}">{{ o.label }}</button></sc-for>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label for="delay" style="color:#A9B8B9">Задержка проверки после 503, с</label>
+        <input id="delay" type="number" min="0" max="120" value="{{ delayValue }}" onChange="{{ onDelay }}" style="width:72px;background:#132427;border:1px solid #2A3C3E;border-radius:8px;padding:6px 8px"></input>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="color:#A9B8B9">Состояние списков (API)</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-for list="{{ screenOpts }}" as="o" hint-placeholder-count="4"><button type="button" aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="border-radius:999px;padding:6px 12px;cursor:pointer;border:1px solid {{ o.border }};background:{{ o.bg }};color:{{ o.color }}">{{ o.label }}</button></sc-for>
+        </div>
+      </div>
+      <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="dev-id" style="color:#A9B8B9">Открыть по известному ID (проверка изоляции)</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input id="dev-id" value="{{ devId }}" onChange="{{ onDevId }}" placeholder="res-a-01 / RN-1001" style="flex:1 1 140px;min-width:0;background:#132427;border:1px solid #2A3C3E;border-radius:8px;padding:6px 8px;font-family:Menlo,Consolas,monospace"></input>
+            <button type="button" onClick="{{ devOpenResource }}" style="background:transparent;border:1px solid #2A3C3E;border-radius:8px;padding:6px 10px;cursor:pointer" style-hover="border-color:#80A3FF">Ресурс</button>
+            <button type="button" onClick="{{ devOpenRequest }}" style="background:transparent;border:1px solid #2A3C3E;border-radius:8px;padding:6px 10px;cursor:pointer" style-hover="border-color:#80A3FF">Заявка</button>
+          </div>
+        </div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="color:#A9B8B9">Симулятор · GET /stats</span>
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;font-family:Menlo,Consolas,monospace">
+          <span style="color:#A9B8B9">resource_id</span><span style="color:#A9B8B9">operation_count</span><span style="color:#A9B8B9">started_count</span>
+          <sc-for list="{{ provStats }}" as="p" hint-placeholder-count="3"><span>{{ p.id }}</span><span style="text-align:right">{{ p.count }}</span><span style="text-align:right">{{ p.started }}</span></sc-for>
+        </div>
+        <sc-if value="{{ hasProvOps }}" hint-placeholder-val="{{ false }}">
+          <span style="color:#A9B8B9;margin-top:4px">Операции · GET /renewals/{ключ}</span>
+          <sc-for list="{{ provOps }}" as="p" hint-placeholder-count="1">
+            <div style="display:flex;flex-direction:column;gap:1px;font-family:Menlo,Consolas,monospace;word-break:break-all"><span>{{ p.key }}</span><span style="color:#A9B8B9">{{ p.info }}</span></div>
+          </sc-for>
+        </sc-if>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" onClick="{{ restartApp }}" style="background:transparent;border:1px solid #80A3FF;color:#A9C0FF;border-radius:10px;padding:7px 12px;cursor:pointer" style-hover="background:rgba(128,163,255,0.12)">Перезапустить прототип</button>
+        <button type="button" onClick="{{ resetData }}" style="background:transparent;border:1px solid #2A3C3E;border-radius:10px;padding:7px 12px;cursor:pointer;color:#A9B8B9" style-hover="border-color:#A9B8B9;color:#F5F7F7">Сбросить набор данных</button>
+      </div>
+      <span style="color:#A9B8B9">Перезапуск перезагружает страницу: база и симулятор сохраняются, незавершённые задачи продолжаются с прежним ключом.</span>
+    </section>
+  </sc-if>
+  <button type="button" aria-expanded="{{ devOpen }}" onClick="{{ toggleDev }}" style="display:flex;align-items:center;gap:8px;background:#0F2123;border:1px dashed #4A6266;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px;color:#A9B8B9" style-hover="border-color:#80A3FF;color:#F5F7F7"><span style="font-family:Menlo,Consolas,monospace;font-size:11px;color:#F2C46B">DEV</span><span>{{ devBtnLabel }}</span></button>
+</div>
+
+<sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+  <div role="status" aria-live="polite" style="position:fixed;left:16px;bottom:16px;z-index:35;max-width:min(420px, calc(100% - 32px));background:#1D2C2E;border:1px solid {{ toastBorder }};border-radius:14px;padding:12px 16px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,0.4)">{{ toastText }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PASS = 'demo1234';
+const K = { db: d => 'renewaldesk:db:' + d + ':v2', prov: d => 'renewaldesk:prov:' + d + ':v2', ses: 'renewaldesk:session:v2', dev: 'renewaldesk:devtools:v2' };
+const DEV_DEFAULT = { open: false, dataset: 'core', provider: 'sim', delay: 6, screen: 'data' };
+const WS = { alpha: 'Alpha', beta: 'Beta', orion: 'Orion' };
+const ACTIVE = ['pending_approval', 'processing', 'requires_attention'];
+const ST = {
+  pending_approval: { label: 'На согласовании', c: '#A9C0FF', bg: 'rgba(128,163,255,0.14)', glyph: '◷' },
+  processing: { label: 'Выполняется', c: '#F2C46B', bg: 'rgba(242,196,107,0.12)', glyph: '↻' },
+  completed: { label: 'Завершена', c: '#7FD6A4', bg: 'rgba(127,214,164,0.12)', glyph: '✓' },
+  rejected: { label: 'Отклонена', c: '#C3CFD0', bg: 'rgba(169,184,185,0.14)', glyph: '✕' },
+  requires_attention: { label: 'Требует внимания', c: '#FF9C8A', bg: 'rgba(255,156,138,0.14)', glyph: '!' },
+};
+const NONE = { label: 'Нет активной', c: '#A9B8B9', bg: 'rgba(169,184,185,0.06)', glyph: '–' };
+const EV = { request_created: 'Заявка создана', request_approved: 'Заявка согласована', request_rejected: 'Заявка отклонена', job_enqueued: 'Задача поставлена в обработку', provider_post: 'Отправка провайдеру', provider_check: 'Проверка результата', provider_confirmed: 'Операция подтверждена', term_updated: 'Срок ресурса обновлён', requires_attention: 'Требует внимания', retry_requested: 'Повторная обработка' };
+const CHECK = { 200: '200 · операция найдена', 404: '404 · операция не найдена', 503: '503 · провайдер недоступен' };
+const ERR_TITLE = { 401: 'Требуется вход', 403: 'Нет доступа', 404: 'Не найдено', 409: 'Конфликт', 500: 'Ошибка сервера' };
+const ROLE = r => r.includes('initiator') && r.includes('approver') ? 'Инициатор и согласующий' : r.includes('approver') ? 'Согласующий' : 'Инициатор';
+const email = u => u.login + '@renewaldesk.test';
+const readJSON = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const nowIso = () => new Date().toISOString();
+const rnd = n => Math.random().toString(36).slice(2, 2 + n).padEnd(n, '7');
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const fDate = iso => iso ? iso.split('-').reverse().join('.') : '—';
+const fMoney = m => (m / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' RUB';
+const fDT = ts => ts ? new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+const fDTs = ts => ts ? new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const E = (status_code, error_code, message) => Object.assign(new Error(message), { status_code, error_code });
+const payload = q => ({ resource_id: q.resource_id, period_months: 1, amount_minor: q.amount_minor, currency: q.currency });
+const MONO = 'Menlo,Consolas,monospace', SANS = 'inherit';
+const parseHash = () => {
+  const h = (typeof location !== 'undefined' ? location.hash : '').replace(/^#\/?/, '');
+  const [path, qs] = h.split('?'); const parts = (path || '').split('/').filter(Boolean);
+  const params = Object.fromEntries(new URLSearchParams(qs || ''));
+  if (parts[0] === 'requests' && parts[1]) return { name: 'request', id: decodeURIComponent(parts[1]), params };
+  if (['overview', 'resources', 'requests', 'audit'].includes(parts[0])) return { name: parts[0], params };
+  return { name: 'overview', params: {} };
+};
+
+function pushEv(db, q, at, actor, type, from, to, result, detail) {
+  db.events.push({ id: 'ev-' + String(db.ev_seq++).padStart(5, '0'), workspace_id: q.workspace_id, request_id: q.id, resource_id: q.resource_id, occurred_at: at, actor_id: actor, type, from_status: from, to_status: to, result: result || null, detail: detail || null });
+}
+// Модель предоставленного Python-симулятора: первый POST по новому ключу выполняет операцию и отвечает 503;
+// повтор с тем же ключом и тем же телом -> 200; тот же ключ с другим телом -> 409. Режим down — только демо-инъекция отказа.
+function provPost(prov, key, body, down) {
+  const s = JSON.stringify(body), ex = prov.ops[key];
+  if (ex) { if (ex.body !== s) return { status: 409 }; return down ? { status: 503 } : { status: 200, op: ex }; }
+  prov.ops[key] = { operation_id: 'op-' + rnd(8), resource_id: body.resource_id, status: 'completed', started_count: 1, body: s };
+  prov.stats[body.resource_id] = (prov.stats[body.resource_id] || 0) + 1;
+  return { status: 503 };
+}
+function provGet(prov, key, down) { if (down) return { status: 503 }; const ex = prov.ops[key]; return ex ? { status: 200, op: ex } : { status: 404 }; }
+function newReq(id, r, prev, by, at) {
+  return { id, resource_id: r.id, workspace_id: r.workspace_id, previous_expires_on: prev, new_expires_on: addDays(prev, 30), amount_minor: r.amount_minor, currency: r.currency, status: 'pending_approval', idempotency_key: 'renewal-' + r.workspace_id + '-' + id.toLowerCase() + '-' + rnd(6), created_by: by, created_at: at, decided_by: null, decided_at: null, operation_id: null, post_attempts: 0, post_attempts_total: 0, last_attempt_at: null, next_check_at: null, provider_confirmation: null };
+}
+const CORE_USERS = [
+  { id: 'u-ini-a', name: 'Инициатор Alpha', login: 'initiator.alpha', workspace_id: 'alpha', roles: ['initiator'] },
+  { id: 'u-apr-a', name: 'Согласующий Alpha', login: 'approver.alpha', workspace_id: 'alpha', roles: ['approver'] },
+  { id: 'u-ini-b', name: 'Инициатор Beta', login: 'initiator.beta', workspace_id: 'beta', roles: ['initiator'] },
+  { id: 'u-uni-a', name: 'Универсальный Alpha', login: 'universal.alpha', workspace_id: 'alpha', roles: ['initiator', 'approver'] },
+];
+const CORE_RES = () => [
+  { id: 'res-a-01', workspace_id: 'alpha', name: 'Хранилище A', category: 'Облачные хранилища', expires_on: '2027-03-01', amount_minor: 128000, currency: 'RUB' },
+  { id: 'res-a-02', workspace_id: 'alpha', name: 'Сервис B', category: 'Инфраструктурные сервисы', expires_on: '2027-05-20', amount_minor: 250000, currency: 'RUB' },
+  { id: 'res-b-01', workspace_id: 'beta', name: 'Сервис C', category: 'Инфраструктурные сервисы', expires_on: '2027-06-01', amount_minor: 150000, currency: 'RUB' },
+];
+function seedCore() { return { db: { v: 2, dataset: 'core', seq: 1001, ev_seq: 1, users: CORE_USERS, resources: CORE_RES(), requests: [], events: [] }, prov: { ops: {}, stats: {} } }; }
+function seedDemo() {
+  const res = (id, ws, name, category, exp, amt) => ({ id, workspace_id: ws, name, category, expires_on: exp, amount_minor: amt, currency: 'RUB' });
+  const db = { v: 2, dataset: 'demo', seq: 1001, ev_seq: 1, users: [...CORE_USERS,
+    { id: 'u-apr-b', name: 'Ирина Соколова', login: 'approver.beta', workspace_id: 'beta', roles: ['approver'] },
+    { id: 'u-ini-o', name: 'Павел Зуев', login: 'initiator.orion', workspace_id: 'orion', roles: ['initiator'] },
+    { id: 'u-apr-o', name: 'Елена Гарина', login: 'approver.orion', workspace_id: 'orion', roles: ['approver'] }],
+    resources: [...CORE_RES(),
+      res('res-a-03', 'alpha', 'Объектное хранилище · архив документов', 'Облачные хранилища', '2026-11-16', 98000),
+      res('res-a-04', 'alpha', 'PostgreSQL · платёжный контур', 'Базы данных', '2027-02-10', 420000),
+      res('res-a-05', 'alpha', 'Лицензии IDE · 40 мест', 'Программные лицензии', '2026-12-01', 360000),
+      res('res-a-06', 'alpha', 'Мониторинг инфраструктуры', 'Мониторинг', '2026-11-28', 74000),
+      res('res-a-07', 'alpha', 'Резервное копирование виртуальных машин', 'Резервное копирование', '2027-04-05', 189000),
+      res('res-a-08', 'alpha', 'Корпоративная подписка на офисный пакет · отдел продаж и сопровождения клиентов — юридических лиц', 'Корпоративные подписки', '2027-08-30', 1240000),
+      res('res-a-09', 'alpha', 'Балансировщик нагрузки · внешний контур', 'Инфраструктурные сервисы', '2026-12-20', 156000),
+      res('res-b-02', 'beta', 'Аналитическое хранилище событий', 'Аналитика', '2027-01-22', 310000),
+      res('res-b-03', 'beta', 'Лицензии BI-платформы', 'Программные лицензии', '2027-03-15', 275000),
+      res('res-o-01', 'orion', 'Хранилище логов', 'Облачные хранилища', '2026-12-05', 64000),
+      res('res-o-02', 'orion', 'Мониторинг приложений', 'Мониторинг', '2027-02-01', 88000),
+      res('res-o-03', 'orion', 'Резервное копирование баз данных', 'Резервное копирование', '2027-01-10', 142000)],
+    requests: [], events: [] };
+  const prov = { ops: {}, stats: {} };
+  const R = id => db.resources.find(r => r.id === id);
+  const mk = (id, rid, by, at) => { const r = R(rid); const q = newReq(id, r, r.expires_on, by, at); db.requests.push(q); pushEv(db, q, at, by, 'request_created', null, 'pending_approval', null, 'Заявка на продление на 30 календарных дней.'); return q; };
+  const approve = (q, by, at) => { Object.assign(q, { status: 'processing', decided_by: by, decided_at: at, provider_confirmation: 'pending' }); pushEv(db, q, at, by, 'request_approved', 'pending_approval', 'processing', null, 'Решение согласующего зафиксировано.'); pushEv(db, q, at, null, 'job_enqueued', null, null, 'В очереди', 'Операция передана фоновому обработчику с ключом заявки.'); };
+  const reject = (q, by, at) => { Object.assign(q, { status: 'rejected', decided_by: by, decided_at: at }); pushEv(db, q, at, by, 'request_rejected', 'pending_approval', 'rejected', null, 'Срок ресурса не изменён, операция провайдеру не отправлялась.'); };
+  const post503 = (q, at) => { q.post_attempts++; q.post_attempts_total++; q.last_attempt_at = at; provPost(prov, q.idempotency_key, payload(q), false); q.provider_confirmation = 'uncertain'; pushEv(db, q, at, null, 'provider_post', null, null, '503 · результат неопределён', 'POST /renewals · попытка ' + q.post_attempts + ' из 3'); };
+  const check = (q, at, code) => pushEv(db, q, at, null, 'provider_check', null, null, CHECK[code], 'GET /renewals/{ключ} — не считается POST-попыткой');
+  const complete = (q, at) => { const op = prov.ops[q.idempotency_key]; const r = R(q.resource_id); r.expires_on = q.new_expires_on; Object.assign(q, { status: 'completed', operation_id: op.operation_id, provider_confirmation: 'confirmed', next_check_at: null }); pushEv(db, q, at, null, 'provider_confirmed', null, null, op.operation_id, 'Провайдер подтвердил выполнение операции.'); pushEv(db, q, at, null, 'term_updated', 'processing', 'completed', fDate(q.previous_expires_on) + ' → ' + fDate(q.new_expires_on), 'Срок ресурса обновлён, заявка завершена.'); };
+  const full = (id, rid, by, apr, d) => { const q = mk(id, rid, by, d + 'T08:20:00Z'); approve(q, apr, d + 'T11:40:00Z'); post503(q, d + 'T11:40:04Z'); check(q, d + 'T11:40:34Z', 200); complete(q, d + 'T11:40:34Z'); return q; };
+  full('RN-0895', 'res-a-03', 'u-ini-a', 'u-apr-a', '2026-10-14');
+  full('RN-0901', 'res-a-03', 'u-uni-a', 'u-apr-a', '2026-10-28');
+  let q = mk('RN-0902', 'res-a-05', 'u-uni-a', '2026-11-03T14:05:00Z'); reject(q, 'u-apr-a', '2026-11-04T10:22:00Z');
+  q = mk('RN-0903', 'res-a-06', 'u-ini-a', '2026-11-06T08:30:00Z'); approve(q, 'u-uni-a', '2026-11-06T09:02:00Z');
+  post503(q, '2026-11-06T09:02:04Z'); check(q, '2026-11-06T09:02:34Z', 503);
+  q.post_attempts++; q.post_attempts_total++; q.last_attempt_at = '2026-11-06T09:02:36Z'; pushEv(db, q, q.last_attempt_at, null, 'provider_post', null, null, '503 · результат неопределён', 'POST /renewals · попытка 2 из 3'); check(q, '2026-11-06T09:03:06Z', 503);
+  q.post_attempts++; q.post_attempts_total++; q.last_attempt_at = '2026-11-06T09:03:08Z'; pushEv(db, q, q.last_attempt_at, null, 'provider_post', null, null, '503 · результат неопределён', 'POST /renewals · попытка 3 из 3'); check(q, '2026-11-06T09:03:38Z', 503);
+  Object.assign(q, { status: 'requires_attention', provider_confirmation: 'not_confirmed', next_check_at: null });
+  pushEv(db, q, '2026-11-06T09:03:38Z', null, 'requires_attention', 'processing', 'requires_attention', 'Нет подтверждения после 3 POST-попыток', 'Повтор продолжит проверку с тем же ключом операции.');
+  mk('RN-0904', 'res-a-04', 'u-ini-a', '2026-11-11T16:45:00Z');
+  mk('RN-0905', 'res-a-07', 'u-uni-a', '2026-11-12T08:10:00Z');
+  q = mk('RN-0906', 'res-a-09', 'u-ini-a', '2026-11-12T07:50:00Z'); approve(q, 'u-apr-a', '2026-11-12T09:30:00Z'); post503(q, '2026-11-12T09:30:04Z'); q.next_check_at = new Date(Date.now() + 90000).toISOString();
+  full('RN-0907', 'res-b-02', 'u-ini-b', 'u-apr-b', '2026-10-20');
+  mk('RN-0908', 'res-b-03', 'u-ini-b', '2026-11-10T11:30:00Z');
+  full('RN-0909', 'res-o-01', 'u-ini-o', 'u-apr-o', '2026-11-02');
+  q = mk('RN-0910', 'res-o-03', 'u-ini-o', '2026-11-09T15:20:00Z'); reject(q, 'u-apr-o', '2026-11-10T09:00:00Z');
+  return { db, prov };
+}
+
+class Component extends DCLogic {
+  rootRef = React.createRef(); headingRef = React.createRef(); drawerRef = React.createRef(); drawerCloseRef = React.createRef();
+  dialogRef = React.createRef(); dialogCancelRef = React.createRef(); profileBtnRef = React.createRef(); burgerRef = React.createRef();
+  jobs = new Set(); vseq = 0;
+  devInit = { ...DEV_DEFAULT, ...(readJSON(K.dev) || {}) };
+  booted = this.loadDataset(this.devInit.dataset);
+  sesInit = readJSON(K.ses);
+  state = {
+    dev: this.devInit,
+    userId: this.sesInit && this.sesInit.dataset === this.devInit.dataset && this.db.users.some(x => x.id === this.sesInit.userId) ? this.sesInit.userId : null,
+    width: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    route: parseHash(), view: { status: 'loading', for: null }, drawer: null, dialog: null, toast: null, busy: false,
+    loginEmail: '', loginPass: '', passShown: false, loginError: '', demoPick: '', profileOpen: false, burgerOpen: false,
+    fRes: { q: '', cat: 'all', active: 'all', sort: 'exp_asc' }, fReq: { q: '', status: 'all', sort: 'new' }, fAud: { res: 'all', type: 'all', period: 'all' },
+    createValue: '', devId: '',
+  };
+
+  loadDataset(name) {
+    let db = readJSON(K.db(name)), prov = readJSON(K.prov(name));
+    if (!db || !prov || db.v !== 2) { const s = name === 'demo' ? seedDemo() : seedCore(); db = s.db; prov = s.prov; }
+    this.db = db; this.prov = prov; this.save(); return true;
+  }
+  save(db = this.db, prov = this.prov) { localStorage.setItem(K.db(db.dataset), JSON.stringify(db)); localStorage.setItem(K.prov(db.dataset), JSON.stringify(prov)); }
+
+  componentDidMount() {
+    if (this.rootRef.current && typeof ResizeObserver !== 'undefined') {
+      this.ro = new ResizeObserver(([e]) => { const w = Math.round(e.contentRect.width); if (w && w !== this.state.width) this.setState({ width: w }); });
+      this.ro.observe(this.rootRef.current);
+    }
+    window.addEventListener('keydown', this.onKey);
+    window.addEventListener('hashchange', this.onHash);
+    if (this.state.userId) this.loadView();
+    this.resumeJobs();
+  }
+  componentWillUnmount() { this.dead = true; this.ro && this.ro.disconnect(); window.removeEventListener('keydown', this.onKey); window.removeEventListener('hashchange', this.onHash); }
+  componentDidUpdate() {
+    const s = this.state;
+    if (s.dialog && !this._dlg) setTimeout(() => this.dialogCancelRef.current && this.dialogCancelRef.current.focus(), 0);
+    if (s.drawer && !this._drw) setTimeout(() => this.drawerCloseRef.current && this.drawerCloseRef.current.focus(), 0);
+    this._dlg = !!s.dialog; this._drw = !!s.drawer;
+  }
+  restoreFocus(el) { setTimeout(() => { if (el && el.isConnected) el.focus(); else if (this.headingRef.current) this.headingRef.current.focus(); }, 0); }
+  trap(ref) {
+    return e => {
+      if (e.key !== 'Tab' || !ref.current) return;
+      const f = [...ref.current.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(x => x.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+  }
+  onKey = e => {
+    if (e.key !== 'Escape') return;
+    const s = this.state;
+    if (s.dialog) { if (!s.dialog.busy) this.closeDialog(); }
+    else if (s.drawer) this.closeDrawer();
+    else if (s.profileOpen) this.closeProfile();
+    else if (s.burgerOpen) this.setState({ burgerOpen: false }, () => this.restoreFocus(this.burgerRef.current));
+    else if (s.dev.open) this.setDev({ open: false });
+  };
+  onHash = () => {
+    const route = parseHash();
+    const patch = { route, view: { status: 'loading', for: null }, drawer: null, dialog: null, burgerOpen: false, profileOpen: false };
+    if (route.name === 'requests' && route.params.status) patch.fReq = { ...this.state.fReq, status: route.params.status };
+    this.setState(patch, () => { this.loadView(); window.scrollTo(0, 0); setTimeout(() => this.headingRef.current && this.headingRef.current.focus({ preventScroll: true }), 50); });
+  };
+  go(h) { if (location.hash === h) this.onHash(); else location.hash = h; }
+
+  // ---------- имитация API (snake_case DTO, ошибки {status_code, error_code, message}) ----------
+  async call(fn, list) { if (list && this.state.dev.screen === 'loading') return new Promise(() => {}); await sleep(300); return fn(); }
+  me() { const u = this.db.users.find(x => x.id === this.state.userId); if (!u) throw E(401, 'unauthenticated', 'Требуется вход'); return u; }
+  listGuard() { if (this.state.dev.screen === 'error') throw E(500, 'internal_error', 'Сервер временно недоступен. Повторите попытку позже.'); return this.state.dev.screen === 'empty'; }
+  uname(id) { const u = this.db.users.find(x => x.id === id); return u ? u.name : id; }
+  reqDTO(q) { const r = this.db.resources.find(x => x.id === q.resource_id); return { ...q, resource_name: r ? r.name : q.resource_id, created_by_name: this.uname(q.created_by), decided_by_name: q.decided_by ? this.uname(q.decided_by) : null }; }
+  resDTO(r) { const a = this.db.requests.find(q => q.resource_id === r.id && ACTIVE.includes(q.status)); return { ...r, active_request: a ? { id: a.id, status: a.status } : null }; }
+  evDTO(e) { const r = this.db.resources.find(x => x.id === e.resource_id); return { ...e, resource_name: r ? r.name : e.resource_id, actor_name: e.actor_id ? this.uname(e.actor_id) : null }; }
+  scoped(u) { const empty = this.listGuard(), ws = u.workspace_id; return { res: empty ? [] : this.db.resources.filter(r => r.workspace_id === ws), reqs: empty ? [] : this.db.requests.filter(q => q.workspace_id === ws), evs: empty ? [] : this.db.events.filter(e => e.workspace_id === ws) }; }
+  async apiLogin(login, pass) {
+    await sleep(400);
+    const l = login.trim().toLowerCase(), u = this.db.users.find(x => x.login === l || email(x) === l);
+    if (!u || pass !== PASS) throw E(401, 'invalid_credentials', 'Неверный email или пароль');
+    return u;
+  }
+  apiOverview() {
+    const u = this.me(), { res, reqs, evs } = this.scoped(u), byNew = (a, b) => b.created_at.localeCompare(a.created_at);
+    const cnt = st => reqs.filter(q => q.status === st).length;
+    return {
+      workspace_id: u.workspace_id,
+      counts: { resources_total: res.length, pending_approval: cnt('pending_approval'), processing: cnt('processing'), requires_attention: cnt('requires_attention') },
+      awaiting_my_decision: u.roles.includes('approver') ? reqs.filter(q => (q.status === 'pending_approval' && q.created_by !== u.id) || q.status === 'requires_attention').sort(byNew).map(q => this.reqDTO(q)) : [],
+      my_active_requests: reqs.filter(q => q.created_by === u.id && ACTIVE.includes(q.status)).sort(byNew).map(q => this.reqDTO(q)),
+      recent_requests: reqs.slice().sort(byNew).slice(0, 5).map(q => this.reqDTO(q)),
+      expiring_resources: res.slice().sort((a, b) => a.expires_on.localeCompare(b.expires_on)).slice(0, 5).map(r => this.resDTO(r)),
+      recent_events: evs.slice().sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id.localeCompare(a.id)).slice(0, 6).map(e => this.evDTO(e)),
+    };
+  }
+  apiResources() { const u = this.me(); return { resources: this.scoped(u).res.map(r => this.resDTO(r)) }; }
+  apiRequests() { const u = this.me(); return { requests: this.scoped(u).reqs.map(q => this.reqDTO(q)) }; }
+  apiAudit() { const u = this.me(); return { events: this.scoped(u).evs.map(e => this.evDTO(e)) }; }
+  findIn(u, list, id, what) {
+    const x = list.find(y => y.id === id);
+    if (!x) throw E(404, what + '_not_found', what === 'resource' ? `Ресурс «${id}» не найден` : `Заявка «${id}» не найдена`);
+    if (x.workspace_id !== u.workspace_id) throw E(403, 'workspace_forbidden', 'Нет доступа к рабочему пространству этого объекта');
+    return x;
+  }
+  apiResource(id) { const u = this.me(), r = this.findIn(u, this.db.resources, id, 'resource'); return { resource: this.resDTO(r), requests: this.db.requests.filter(q => q.resource_id === id).sort((a, b) => b.created_at.localeCompare(a.created_at)).map(q => this.reqDTO(q)) }; }
+  apiRequest(id) {
+    const u = this.me(), q = this.findIn(u, this.db.requests, id, 'request');
+    return { request: this.reqDTO(q), resource: this.resDTO(this.db.resources.find(r => r.id === q.resource_id)), events: this.db.events.filter(e => e.request_id === id).map(e => this.evDTO(e)) };
+  }
+  apiCreate(rid) {
+    const u = this.me();
+    if (!u.roles.includes('initiator')) throw E(403, 'role_forbidden', 'Нет права создавать заявки');
+    const r = this.findIn(u, this.db.resources, rid, 'resource');
+    if (this.db.requests.some(q => q.resource_id === rid && ACTIVE.includes(q.status))) throw E(409, 'active_renewal_exists', 'У ресурса уже есть активная заявка');
+    const t = nowIso(), q = newReq('RN-' + (this.db.seq++), r, r.expires_on, u.id, t);
+    this.db.requests.push(q);
+    pushEv(this.db, q, t, u.id, 'request_created', null, 'pending_approval', null, 'Заявка на продление на 30 календарных дней.');
+    this.save(); return this.reqDTO(q);
+  }
+  apiDecide(id, approve) {
+    const u = this.me();
+    if (!u.roles.includes('approver')) throw E(403, 'role_forbidden', 'Нет права согласования');
+    const q = this.findIn(u, this.db.requests, id, 'request');
+    if (q.created_by === u.id) throw E(403, 'cannot_decide_own_request', 'Нельзя согласовать или отклонить собственную заявку');
+    if (q.status !== 'pending_approval') throw E(409, 'invalid_status_transition', `Заявка уже обработана: «${ST[q.status].label}»`);
+    const t = nowIso();
+    if (approve) {
+      const r = this.db.resources.find(x => x.id === q.resource_id);
+      if (r.expires_on !== q.previous_expires_on || r.amount_minor !== q.amount_minor) throw E(409, 'resource_changed', 'Срок или стоимость ресурса изменились после создания заявки');
+      Object.assign(q, { status: 'processing', decided_by: u.id, decided_at: t, provider_confirmation: 'pending', post_attempts: 0 });
+      pushEv(this.db, q, t, u.id, 'request_approved', 'pending_approval', 'processing', null, 'Решение согласующего зафиксировано.');
+      pushEv(this.db, q, t, null, 'job_enqueued', null, null, 'В очереди', 'Операция передана фоновому обработчику с ключом заявки.');
+    } else {
+      Object.assign(q, { status: 'rejected', decided_by: u.id, decided_at: t });
+      pushEv(this.db, q, t, u.id, 'request_rejected', 'pending_approval', 'rejected', null, 'Срок ресурса не изменён, операция провайдеру не отправлялась.');
+    }
+    this.save();
+    if (approve) setTimeout(() => this.runJob(q.id), 400);
+    return this.reqDTO(q);
+  }
+  apiRetry(id) {
+    const u = this.me();
+    if (!u.roles.includes('approver')) throw E(403, 'role_forbidden', 'Нет права запускать повторную обработку');
+    const q = this.findIn(u, this.db.requests, id, 'request');
+    if (q.status !== 'requires_attention') throw E(409, 'invalid_status_transition', 'Повтор доступен только для заявок «Требует внимания»');
+    const t = nowIso();
+    Object.assign(q, { status: 'processing', provider_confirmation: 'uncertain', next_check_at: t, post_attempts: 0 });
+    pushEv(this.db, q, t, u.id, 'retry_requested', 'requires_attention', 'processing', null, 'Проверка продолжится с прежним ключом операции. Новая операция не создаётся.');
+    this.save(); setTimeout(() => this.runJob(q.id), 400);
+    return this.reqDTO(q);
+  }
+
+  // ---------- фоновый обработчик ----------
+  resumeJobs() { this.db.requests.filter(q => q.status === 'processing').forEach(q => this.runJob(q.id)); }
+  async runJob(id) {
+    const db = this.db, prov = this.prov, jk = db.dataset + ':' + id;
+    if (this.jobs.has(jk)) return;
+    this.jobs.add(jk);
+    const down = () => this.state.dev.provider === 'exhaust';
+    try {
+      while (!this.dead && this.db === db) {
+        const q = db.requests.find(x => x.id === id);
+        if (!q || q.status !== 'processing') break;
+        if (q.provider_confirmation === 'uncertain') {
+          const wait = new Date(q.next_check_at).getTime() - Date.now();
+          if (wait > 0) { await sleep(Math.min(wait, 1000)); continue; }
+          const g = provGet(prov, q.idempotency_key, down());
+          pushEv(db, q, nowIso(), null, 'provider_check', null, null, CHECK[g.status], 'GET /renewals/{ключ} — не считается POST-попыткой');
+          if (g.status === 200) { this.finalize(db, prov, q, g.op); break; }
+          Object.assign(q, { provider_confirmation: 'pending', next_check_at: null }); this.save(db, prov); this.refresh(); continue;
+        }
+        if (q.post_attempts >= 3) {
+          Object.assign(q, { status: 'requires_attention', provider_confirmation: 'not_confirmed', next_check_at: null });
+          pushEv(db, q, nowIso(), null, 'requires_attention', 'processing', 'requires_attention', 'Нет подтверждения после 3 POST-попыток', 'Повтор продолжит проверку с тем же ключом операции.');
+          this.save(db, prov); this.refresh(); break;
+        }
+        q.post_attempts++; q.post_attempts_total++; q.last_attempt_at = nowIso(); this.save(db, prov); this.refresh();
+        await sleep(700); if (this.dead || this.db !== db) return;
+        const p = provPost(prov, q.idempotency_key, payload(q), down());
+        const n = 'POST /renewals · попытка ' + q.post_attempts + ' из 3';
+        if (p.status === 200) { pushEv(db, q, nowIso(), null, 'provider_post', null, null, '200 · подтверждено', n); this.finalize(db, prov, q, p.op); break; }
+        if (p.status === 409) {
+          pushEv(db, q, nowIso(), null, 'provider_post', null, null, '409 · конфликт ключа', n);
+          Object.assign(q, { status: 'requires_attention', provider_confirmation: 'not_confirmed' });
+          pushEv(db, q, nowIso(), null, 'requires_attention', 'processing', 'requires_attention', 'Провайдер: ключ использован с другими данными', null);
+          this.save(db, prov); this.refresh(); break;
+        }
+        pushEv(db, q, nowIso(), null, 'provider_post', null, null, '503 · результат неопределён', n);
+        Object.assign(q, { provider_confirmation: 'uncertain', next_check_at: new Date(Date.now() + Math.max(0, Number(this.state.dev.delay) || 0) * 1000).toISOString() });
+        this.save(db, prov); this.refresh();
+      }
+    } finally { this.jobs.delete(jk); }
+  }
+  // Завершение: только если срок ресурса совпадает со снимком. Иначе — requires_attention, без автозавершения.
+  finalize(db, prov, q, op) {
+    if (q.status === 'completed') return;
+    const r = db.resources.find(x => x.id === q.resource_id), t = nowIso();
+    Object.assign(q, { operation_id: op.operation_id, provider_confirmation: 'confirmed', next_check_at: null });
+    pushEv(db, q, t, null, 'provider_confirmed', null, null, op.operation_id, 'Провайдер подтвердил выполнение операции.');
+    let ok = false;
+    if (r.expires_on === q.previous_expires_on) {
+      r.expires_on = q.new_expires_on; q.status = 'completed'; ok = true;
+      pushEv(db, q, t, null, 'term_updated', 'processing', 'completed', fDate(q.previous_expires_on) + ' → ' + fDate(q.new_expires_on), 'Срок ресурса обновлён, заявка завершена.');
+    } else {
+      q.status = 'requires_attention';
+      pushEv(db, q, t, null, 'requires_attention', 'processing', 'requires_attention', 'Срок ресурса не совпадает со снимком', `Текущий срок ${fDate(r.expires_on)}, ожидался ${fDate(q.previous_expires_on)}. Автоматическое завершение запрещено.`);
+    }
+    this.save(db, prov); this.refresh();
+    if (this.db === db && this.state.userId) this.toast(ok ? 'ok' : 'error', ok ? `${q.id} завершена: новый срок ${fDate(q.new_expires_on)}` : `${q.id}: срок ресурса не совпал со снимком — требуется внимание`);
+  }
+
+  // ---------- UI ----------
+  toast(kind, text) { clearTimeout(this.tt); this.setState({ toast: { kind, text } }); this.tt = setTimeout(() => this.setState({ toast: null }), 5000); }
+  errText(e) { return `${e.status_code || 500} · ${e.message}`; }
+  async loadView(silent) {
+    if (!this.state.userId) return;
+    const r = this.state.route, seq = ++this.vseq;
+    if (!silent) this.setState({ view: { status: 'loading', for: null } });
+    const fn = { overview: () => this.apiOverview(), resources: () => this.apiResources(), requests: () => this.apiRequests(), audit: () => this.apiAudit(), request: () => this.apiRequest(r.id) }[r.name];
+    try { const data = await this.call(fn, r.name !== 'request'); if (seq === this.vseq) this.setState({ view: { status: 'ready', for: r.name, data } }); }
+    catch (e) { if (seq === this.vseq) this.setState({ view: { status: 'error', for: r.name, error: e } }); if (e.status_code === 401) this.logout(); }
+  }
+  refresh() {
+    if (!this.state.userId) return;
+    if (this.state.view.status === 'ready') this.loadView(true);
+    const d = this.state.drawer; if (d && d.mode === 'resource' && d.status === 'ready') this.fetchDrawer(d.id, true);
+  }
+  logout = () => { localStorage.removeItem(K.ses); this.setState({ userId: null, drawer: null, dialog: null, profileOpen: false, burgerOpen: false, loginEmail: '', loginPass: '', demoPick: '', view: { status: 'loading', for: null } }); };
+  closeProfile = () => this.setState({ profileOpen: false }, () => this.restoreFocus(this.profileBtnRef.current));
+  openDrawer(id) { if (!this.state.drawer) this.retDrawer = document.activeElement; this.setState({ drawer: { mode: 'resource', id, status: 'loading' }, profileOpen: false }); this.fetchDrawer(id); }
+  async fetchDrawer(id, silent) {
+    try { const data = await this.call(() => this.apiResource(id)); this.setState(s => s.drawer && s.drawer.mode === 'resource' && s.drawer.id === id ? { drawer: { mode: 'resource', id, status: 'ready', data } } : null); }
+    catch (e) { this.setState(s => s.drawer && s.drawer.id === id ? { drawer: { mode: 'resource', id, status: 'error', error: e } } : null); }
+  }
+  closeDrawer = () => this.setState({ drawer: null }, () => this.restoreFocus(this.retDrawer));
+  availableForCreate() { const u = this.db.users.find(x => x.id === this.state.userId); if (!u) return []; return this.db.resources.filter(r => r.workspace_id === u.workspace_id && !this.db.requests.some(q => q.resource_id === r.id && ACTIVE.includes(q.status))); }
+  openCreate(rid) { if (!this.state.drawer) this.retDrawer = document.activeElement; const av = this.availableForCreate(); this.setState({ drawer: { mode: 'create', error: null, busy: false }, createValue: rid || (av[0] && av[0].id) || '' }); }
+  openDialog(kind) { this.retDialog = document.activeElement; this.setState({ dialog: { kind, busy: false, error: null } }); }
+  closeDialog = () => { if (this.state.dialog && this.state.dialog.busy) return; this.setState({ dialog: null }, () => this.restoreFocus(this.retDialog)); };
+  async confirmDialog() {
+    const d = this.state.dialog, q = this.state.view.data && this.state.view.data.request;
+    if (!d || d.busy || !q) return;
+    this.setState({ dialog: { ...d, busy: true, error: null } });
+    try {
+      await this.call(() => d.kind === 'approve' ? this.apiDecide(q.id, true) : d.kind === 'reject' ? this.apiDecide(q.id, false) : this.apiRetry(q.id));
+      this.setState({ dialog: null }, () => this.restoreFocus(null));
+      this.toast('ok', d.kind === 'approve' ? `${q.id} согласована — операция передана провайдеру` : d.kind === 'reject' ? `${q.id} отклонена` : `${q.id}: проверка продолжена с прежним ключом`);
+    } catch (e) { this.setState({ dialog: { ...d, busy: false, error: this.errText(e) } }); }
+    finally { this.refresh(); }
+  }
+  setDev(patch, after) { this.setState(s => ({ dev: { ...s.dev, ...patch } }), () => { localStorage.setItem(K.dev, JSON.stringify(this.state.dev)); after && after(); }); }
+  opt(label, on, pick) { return { label, on, pick, border: on ? '#80A3FF' : '#2A3C3E', bg: on ? 'rgba(128,163,255,0.14)' : 'transparent', color: on ? '#C9D7FF' : '#A9B8B9' }; }
+  chip(st) { return ST[st] || NONE; }
+
+  renderVals() {
+    const s = this.state, db = this.db, dev = s.dev;
+    const u = db.users.find(x => x.id === s.userId);
+    const isMobile = s.width < 760, narrow = s.width < 1000;
+    const isInit = !!u && u.roles.includes('initiator'), isAppr = !!u && u.roles.includes('approver');
+    const route = s.route, v = s.view, ready = v.status === 'ready' && v.for === route.name, d = ready ? v.data : null;
+    const wsName = u ? WS[u.workspace_id] : '';
+    const reqItem = q => ({ href: '#/requests/' + q.id, title: q.resource_name, sub: `${q.id} · ${q.created_by_name} · ${fDT(q.created_at)}`, chip: this.chip(q.status) });
+    const errOf = e => ({ title: `${e.status_code || 500} · ${ERR_TITLE[e.status_code] || 'Ошибка'}`, text: e.message, code: e.error_code || 'internal_error' });
+    const o = {
+      rootRef: this.rootRef, headingRef: this.headingRef, busy: s.busy,
+      loggedOut: !u, loggedIn: !!u, showDesktopNav: !!u && !narrow, showBurger: !!u && narrow,
+      // login
+      loginEmail: s.loginEmail, loginPass: s.loginPass, passShown: s.passShown, passType: s.passShown ? 'text' : 'password',
+      passToggleLabel: s.passShown ? 'Скрыть' : 'Показать', passToggleAria: s.passShown ? 'Скрыть пароль' : 'Показать пароль',
+      togglePass: () => this.setState({ passShown: !s.passShown }),
+      onLoginEmail: e => this.setState({ loginEmail: e.target.value, loginError: '' }), onLoginPass: e => this.setState({ loginPass: e.target.value, loginError: '' }),
+      hasLoginError: !!s.loginError, loginError: s.loginError, loginBtn: s.busy && !u ? 'Вход…' : 'Войти',
+      submitLogin: async e => {
+        e.preventDefault(); if (s.busy) return;
+        if (!s.loginEmail.trim() || !s.loginPass) { this.setState({ loginError: 'Введите email и пароль' }); return; }
+        this.setState({ busy: true, loginError: '' });
+        try {
+          const x = await this.apiLogin(s.loginEmail, s.loginPass);
+          localStorage.setItem(K.ses, JSON.stringify({ userId: x.id, dataset: db.dataset }));
+          const route = parseHash();
+          this.setState({ userId: x.id, loginPass: '', passShown: false, route, view: { status: 'loading', for: null } }, () => this.loadView());
+        } catch (err) { this.setState({ loginError: this.errText(err) }); }
+        finally { this.setState({ busy: false }); }
+      },
+      demoAccountOptions: [{ value: '', label: 'Выберите аккаунт…' }, ...db.users.map(x => ({ value: x.id, label: `${email(x)} — ${ROLE(x.roles)}, ${WS[x.workspace_id]}` }))],
+      demoPick: s.demoPick,
+      onDemoPick: e => { const x = db.users.find(y => y.id === e.target.value); this.setState({ demoPick: e.target.value, loginEmail: x ? email(x) : '', loginPass: x ? PASS : '', loginError: '' }); },
+      datasetName: dev.dataset === 'core' ? 'Core dataset' : 'Demo dataset',
+      // header
+      navItems: [['overview', 'Обзор'], ['resources', 'Ресурсы'], ['requests', 'Заявки на продление'], ['audit', 'История операций']].map(([k, label]) => {
+        const on = route.name === k || (k === 'requests' && route.name === 'request');
+        return { label, href: '#/' + k, current: on ? 'page' : undefined, color: on ? '#F5F7F7' : '#A9B8B9', bg: on ? '#1D2C2E' : 'transparent', mobileBg: on ? '#243537' : 'transparent' };
+      }),
+      wsLabel: wsName, userName: u ? u.name : '', userEmail: u ? email(u) : '', userRole: u ? ROLE(u.roles) : '',
+      userInitials: u ? u.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '',
+      profileAria: u ? `Профиль: ${u.name}, ${ROLE(u.roles)}` : '',
+      profileOpen: s.profileOpen, toggleProfile: () => this.setState({ profileOpen: !s.profileOpen }), closeProfile: this.closeProfile, profileBtnRef: this.profileBtnRef,
+      burgerOpen: s.burgerOpen, burgerLabel: s.burgerOpen ? 'Закрыть' : 'Меню', toggleBurger: () => this.setState({ burgerOpen: !s.burgerOpen }), burgerRef: this.burgerRef,
+      logout: this.logout,
+      showListHeading: !!u && route.name !== 'request',
+      pageTitle: { overview: 'Обзор', resources: 'Ресурсы', requests: 'Заявки на продление', audit: 'История операций' }[route.name] || '',
+      pageSub: 'Рабочее пространство: ' + wsName,
+      viewLoading: !!u && !ready && v.status === 'loading', viewError: !!u && v.status === 'error',
+      retryView: () => this.loadView(),
+      showOverview: false, showResources: false, showRequests: false, showRequest: false, showAudit: false,
+    };
+    if (v.status === 'error' && v.error) { const er = errOf(v.error); Object.assign(o, { viewErrorTitle: er.title, viewErrorText: er.text, viewErrorCode: er.code, viewErrorRetryable: (v.error.status_code || 500) >= 500 }); }
+
+    if (u && d && route.name === 'overview') {
+      const c = d.counts;
+      o.showOverview = true;
+      o.kpis = [
+        { label: 'Всего ресурсов', value: c.resources_total, href: '#/resources', hint: 'В пространстве ' + wsName, valueColor: '#F5F7F7' },
+        { label: 'На согласовании', value: c.pending_approval, href: '#/requests?status=pending_approval', hint: 'Ожидают решения согласующего', valueColor: '#F5F7F7' },
+        { label: 'Выполняется', value: c.processing, href: '#/requests?status=processing', hint: 'Обработка у провайдера', valueColor: '#F5F7F7' },
+        { label: 'Требует внимания', value: c.requires_attention, href: '#/requests?status=requires_attention', hint: c.requires_attention ? 'Нужно действие согласующего' : 'Проблемных заявок нет', valueColor: c.requires_attention ? '#FF9C8A' : '#F5F7F7' },
+      ];
+      const dec = isAppr ? d.awaiting_my_decision : d.my_active_requests;
+      Object.assign(o, {
+        decisionTitle: isAppr ? 'Требуют вашего решения' : 'Ваши активные заявки',
+        decisionEmpty: isAppr ? 'Нет заявок, ожидающих вашего решения.' : 'У вас нет активных заявок.',
+        decisionItems: dec.slice(0, 5).map(reqItem), noDecisionItems: dec.length === 0,
+        recentReqs: d.recent_requests.map(reqItem), noRecentReqs: d.recent_requests.length === 0,
+        expiring: d.expiring_resources.map(r => {
+          const days = Math.round((new Date(r.expires_on + 'T00:00:00Z') - Date.now()) / 86400000);
+          return { title: r.name, sub: r.active_request ? `${r.category} · ${r.active_request.id}: ${ST[r.active_request.status].label}` : r.category, date: fDate(r.expires_on), left: days < 0 ? 'срок истёк' : days === 0 ? 'сегодня' : `через ${days} дн.`, leftColor: days <= 30 ? '#F2C46B' : '#A9B8B9', open: () => this.openDrawer(r.id) };
+        }), noExpiring: d.expiring_resources.length === 0,
+        recentEvents: d.recent_events.map(e => ({ href: '#/requests/' + e.request_id, title: EV[e.type], sub: `${e.resource_name} · ${e.request_id}${e.result ? ' · ' + e.result : ''}`, time: fDT(e.occurred_at), by: e.actor_name || 'Система' })),
+        noRecentEvents: d.recent_events.length === 0,
+      });
+    }
+
+    if (u && d && route.name === 'resources') {
+      const f = s.fRes, all = d.resources, ql = f.q.trim().toLowerCase();
+      let list = all.filter(r => (!ql || r.name.toLowerCase().includes(ql) || r.id.toLowerCase().includes(ql)) && (f.cat === 'all' || r.category === f.cat) && (f.active === 'all' || (f.active === 'active' ? !!r.active_request : !r.active_request)));
+      const cmp = { exp_asc: (a, b) => a.expires_on.localeCompare(b.expires_on), exp_desc: (a, b) => b.expires_on.localeCompare(a.expires_on), amt_asc: (a, b) => a.amount_minor - b.amount_minor, amt_desc: (a, b) => b.amount_minor - a.amount_minor }[f.sort];
+      list = list.slice().sort(cmp);
+      const setF = p => this.setState({ fRes: { ...f, ...p } });
+      Object.assign(o, {
+        showResources: true, resQ: f.q, resCat: f.cat, resActive: f.active, resSort: f.sort,
+        onResQ: e => setF({ q: e.target.value }), onResCat: e => setF({ cat: e.target.value }), onResActive: e => setF({ active: e.target.value }), onResSort: e => setF({ sort: e.target.value }),
+        catOptions: [{ value: 'all', label: 'Все категории' }, ...[...new Set(all.map(r => r.category))].sort().map(c => ({ value: c, label: c }))],
+        resCount: `Найдено: ${list.length} из ${all.length}`,
+        resNoData: all.length === 0, resNoMatch: all.length > 0 && list.length === 0,
+        resTable: list.length > 0 && !isMobile, resCards: list.length > 0 && isMobile,
+        resetResFilters: () => this.setState({ fRes: { q: '', cat: 'all', active: 'all', sort: f.sort } }),
+        resRows: list.map(r => {
+          const a = r.active_request, canExtend = isInit && !a, open = () => this.openDrawer(r.id);
+          return { id: r.id, name: r.name, category: r.category, date: fDate(r.expires_on), money: fMoney(r.amount_minor), chip: a ? this.chip(a.status) : NONE,
+            hasActive: !!a, activeHref: a ? '#/requests/' + a.id : '', activeLabel: a ? 'Открыть ' + a.id : '', canExtend, showDetails: !a && !canExtend,
+            aria: `${r.name}, ${r.id}. Открыть карточку ресурса`, open, openBtn: e => { e.stopPropagation(); open(); },
+            extend: e => { e.stopPropagation(); this.openCreate(r.id); }, stop: e => e.stopPropagation() };
+        }),
+      });
+    }
+
+    if (u && d && route.name === 'requests') {
+      const f = s.fReq, all = d.requests, ql = f.q.trim().toLowerCase();
+      const cnt = st => all.filter(q => q.status === st).length;
+      let list = all.filter(q => (f.status === 'all' || q.status === f.status) && (!ql || [q.id, q.resource_name, q.resource_id, q.created_by_name].some(x => x.toLowerCase().includes(ql))));
+      list = list.slice().sort((a, b) => f.sort === 'new' ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at));
+      const setF = p => this.setState({ fReq: { ...f, ...p } });
+      Object.assign(o, {
+        showRequests: true, reqQ: f.q, reqSort: f.sort, onReqQ: e => setF({ q: e.target.value }), onReqSort: e => setF({ sort: e.target.value }),
+        reqStats: { total: all.length, pending: cnt('pending_approval'), processing: cnt('processing'), attention: cnt('requires_attention'), hasAttention: cnt('requires_attention') > 0 },
+        statusChips: [['all', 'Все', all.length], ...Object.keys(ST).map(k => [k, ST[k].label, cnt(k)])].map(([k, l, n]) => this.opt(`${l} · ${n}`, f.status === k, () => setF({ status: k }))),
+        reqCount: `Показано: ${list.length} из ${all.length}`,
+        reqNoData: all.length === 0, reqNoMatch: all.length > 0 && list.length === 0,
+        reqEmptyHint: isInit ? 'Создайте первую заявку на продление ресурса.' : 'Заявки появятся, когда инициатор их создаст.',
+        reqTable: list.length > 0 && !isMobile, reqCards: list.length > 0 && isMobile,
+        resetReqFilters: () => this.setState({ fReq: { q: '', status: 'all', sort: f.sort } }),
+        reqRows: list.map(q => { const href = '#/requests/' + q.id; return { id: q.id, href, resourceName: q.resource_name, resourceId: q.resource_id, prevDate: fDate(q.previous_expires_on), newDate: fDate(q.new_expires_on), money: fMoney(q.amount_minor), creator: q.created_by_name, created: fDT(q.created_at), chip: this.chip(q.status), aria: `Открыть заявку ${q.id}: ${q.resource_name}, ${ST[q.status].label}`, open: () => this.go(href), stop: e => e.stopPropagation() }; }),
+        canCreate: isInit, openCreate: () => this.openCreate(),
+        reqHint: isAppr ? 'Откройте заявку, чтобы согласовать, отклонить или повторить обработку.' : 'Откройте заявку, чтобы увидеть историю и статус выполнения.',
+      });
+    }
+
+    if (u && d && route.name === 'request') {
+      const q = d.request, r = d.resource, own = q.created_by === u.id, st = q.status;
+      const lastAttention = d.events.filter(e => e.type === 'requires_attention').pop();
+      let note = '', nc = '#C3CFD0', nb = 'rgba(169,184,185,0.08)', nbr = '#2A3C3E';
+      const yellow = () => { nc = '#F2C46B'; nb = 'rgba(242,196,107,0.08)'; nbr = 'rgba(242,196,107,0.3)'; };
+      if (st === 'pending_approval') { note = isAppr && own ? 'Это ваша заявка — согласовать или отклонить её должен другой согласующий.' : isAppr ? 'Заявка ожидает вашего решения.' : 'Ожидает решения согласующего.'; if (isAppr && !own) { nc = '#C9D7FF'; nb = 'rgba(128,163,255,0.08)'; nbr = 'rgba(128,163,255,0.3)'; } }
+      if (st === 'processing') { yellow(); note = q.provider_confirmation === 'uncertain' && q.next_check_at ? `Провайдер ответил 503 — результат неопределён. Проверка по тому же ключу в ${new Date(q.next_check_at).toLocaleTimeString('ru-RU')}. Перезапуск приложения не прервёт обработку.` : 'Операция отправляется провайдеру…'; }
+      if (st === 'requires_attention') { nc = '#FFB4A6'; nb = 'rgba(255,156,138,0.08)'; nbr = 'rgba(255,156,138,0.35)'; note = (lastAttention ? lastAttention.result + '. ' : '') + (isAppr ? 'Повторная обработка сначала проверит результат по прежнему ключу — новая операция не создаётся.' : 'Ожидает действия согласующего.'); }
+      if (st === 'completed') { nc = '#7FD6A4'; nb = 'rgba(127,214,164,0.08)'; nbr = 'rgba(127,214,164,0.3)'; note = `Операция ${q.operation_id} подтверждена провайдером. Срок ресурса продлён до ${fDate(q.new_expires_on)}.`; }
+      if (st === 'rejected') note = 'Заявка отклонена. Срок ресурса не изменился, операция провайдеру не отправлялась.';
+      let term = ['Совпадает со снимком заявки', '#C3CFD0', 'rgba(169,184,185,0.12)'];
+      if (st === 'completed') term = r.expires_on === q.new_expires_on ? ['Продление применено', '#7FD6A4', 'rgba(127,214,164,0.12)'] : ['Продление применено, далее изменён другой заявкой', '#C3CFD0', 'rgba(169,184,185,0.12)'];
+      else if (st === 'rejected') term = ['По этой заявке срок не менялся', '#C3CFD0', 'rgba(169,184,185,0.12)'];
+      else if (r.expires_on !== q.previous_expires_on) term = ['Отличается от снимка — автозавершение запрещено', '#FF9C8A', 'rgba(255,156,138,0.14)'];
+      const decLabel = st === 'rejected' ? 'Дата отклонения' : 'Дата согласования';
+      const conf = { pending: 'Ожидается', uncertain: 'Не определено (ответ 503)', confirmed: 'Получено', not_confirmed: 'Не получено' };
+      o.showRequest = true;
+      o.rq = { id: q.id, resourceName: q.resource_name, created: fDT(q.created_at), chip: this.chip(st), prevDate: fDate(q.previous_expires_on), newDate: fDate(q.new_expires_on), currentDate: fDate(r.expires_on),
+        termState: term[0], termC: term[1], termBg: term[2], note, noteColor: nc, noteBg: nb, noteBorder: nbr,
+        canApprove: st === 'pending_approval' && isAppr && !own, canReject: st === 'pending_approval' && isAppr && !own, canRetry: st === 'requires_attention' && isAppr,
+        showExec: q.post_attempts_total > 0 || st === 'processing', openResource: () => this.openDrawer(q.resource_id) };
+      o.rqInfo = [
+        ['Рабочее пространство', WS[q.workspace_id]], ['Ресурс', `${q.resource_name} · ${q.resource_id}`], ['Категория', r.category],
+        ['Инициатор', q.created_by_name], ['Согласующий', q.decided_by_name || '—'], [decLabel, q.decided_at ? fDT(q.decided_at) : '—'],
+        ['Стоимость продления', fMoney(q.amount_minor)], ['Валюта', q.currency], ['Ключ операции', q.idempotency_key, true],
+      ].map(([label, value, mono]) => ({ label, value, font: mono ? MONO : SANS }));
+      o.rqExec = [
+        ['POST-попытки', `${q.post_attempts} из 3` + (q.post_attempts_total > q.post_attempts ? ` · всего ${q.post_attempts_total}` : '')],
+        ['Последняя попытка', fDTs(q.last_attempt_at)],
+        ['Следующая проверка', q.next_check_at && st === 'processing' ? fDTs(q.next_check_at) : '—'],
+        ['Подтверждение провайдером', conf[q.provider_confirmation] || '—', false, q.provider_confirmation === 'confirmed' ? '#7FD6A4' : q.provider_confirmation === 'uncertain' ? '#F2C46B' : q.provider_confirmation === 'not_confirmed' ? '#FF9C8A' : '#F5F7F7'],
+        ['ID операции провайдера', q.operation_id || 'Ещё не получен', !!q.operation_id],
+      ].map(([label, value, mono, color]) => ({ label, value, font: mono ? MONO : SANS, color: color || '#F5F7F7' }));
+      o.rqTimeline = d.events.map(e => {
+        const res = e.result || '', bad = /^503|^409|^404/.test(res);
+        const dot = e.type === 'requires_attention' ? '#FF9C8A' : e.type === 'term_updated' || e.type === 'provider_confirmed' || res.startsWith('200') ? '#7FD6A4' : bad ? '#F2C46B' : e.type === 'request_rejected' ? '#A9B8B9' : '#80A3FF';
+        const tr = e.from_status && e.to_status ? `${ST[e.from_status].label} → ${ST[e.to_status].label}` : e.to_status ? ST[e.to_status].label : '';
+        return { title: EV[e.type], detail: e.detail || '', hasDetail: !!e.detail, result: res, hasResult: !!res, resultColor: bad ? '#F2C46B' : '#A9B8B9', transition: tr, hasTransition: !!tr, time: fDTs(e.occurred_at), by: e.actor_name || 'Система', dot };
+      });
+      o.openApprove = () => this.openDialog('approve'); o.openReject = () => this.openDialog('reject'); o.openRetry = () => this.openDialog('retry');
+    }
+
+    if (u && d && route.name === 'audit') {
+      const f = s.fAud, all = d.events, since = f.period === 'all' ? 0 : Date.now() - Number(f.period) * 86400000;
+      const list = all.filter(e => (f.res === 'all' || e.resource_id === f.res) && (f.type === 'all' || e.type === f.type) && new Date(e.occurred_at).getTime() >= since)
+        .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id.localeCompare(a.id));
+      const setF = p => this.setState({ fAud: { ...f, ...p } });
+      const resMap = {}; all.forEach(e => { resMap[e.resource_id] = e.resource_name; });
+      const filtered = f.res !== 'all' || f.type !== 'all' || f.period !== 'all';
+      Object.assign(o, {
+        showAudit: true, audRes: f.res, audType: f.type, audPeriod: f.period,
+        onAudRes: e => setF({ res: e.target.value }), onAudType: e => setF({ type: e.target.value }), onAudPeriod: e => setF({ period: e.target.value }),
+        audResOptions: [{ value: 'all', label: 'Все ресурсы' }, ...Object.keys(resMap).sort().map(id => ({ value: id, label: `${resMap[id]} · ${id}` }))],
+        audTypeOptions: [{ value: 'all', label: 'Все события' }, ...Object.keys(EV).map(k => ({ value: k, label: EV[k] }))],
+        audCount: `Записей: ${list.length} из ${all.length}`, audFiltered: filtered,
+        audNoMatch: list.length === 0, audEmptyText: all.length === 0 ? 'Событий в пространстве пока нет.' : 'По заданным условиям событий не найдено.',
+        audTable: list.length > 0 && !isMobile, audCards: list.length > 0 && isMobile,
+        resetAudFilters: () => this.setState({ fAud: { res: 'all', type: 'all', period: 'all' } }),
+        audRows: list.map(e => ({ time: fDTs(e.occurred_at), type: EV[e.type], resource: e.resource_name, reqId: e.request_id, href: '#/requests/' + e.request_id, by: e.actor_name || 'Система',
+          transition: e.from_status && e.to_status ? `${ST[e.from_status].label} → ${ST[e.to_status].label}` : e.to_status ? '→ ' + ST[e.to_status].label : '—', result: e.result || '—', resultColor: /^503|^409|^404/.test(e.result || '') ? '#F2C46B' : '#A9B8B9' })),
+      });
+    }
+
+    // drawer
+    const dw = s.drawer;
+    Object.assign(o, { drawerOpen: !!dw && !!u, closeDrawer: this.closeDrawer, drawerRef: this.drawerRef, drawerCloseRef: this.drawerCloseRef, drawerKeys: this.trap(this.drawerRef),
+      drawerLoading: !!dw && dw.mode === 'resource' && dw.status === 'loading', drawerError: !!dw && dw.status === 'error', drawerResReady: !!dw && dw.mode === 'resource' && dw.status === 'ready', drawerCreate: !!dw && dw.mode === 'create',
+      drawerKicker: '', drawerTitle: '', dr: { requests: [] } });
+    if (dw && dw.mode === 'resource') {
+      o.drawerKicker = dw.id; o.drawerTitle = 'Ресурс';
+      if (dw.status === 'error') { const er = errOf(dw.error); Object.assign(o, { drawerTitle: 'Ресурс недоступен', drawerErrorTitle: er.title, drawerErrorText: er.text, drawerErrorCode: er.code }); }
+      if (dw.status === 'ready') {
+        const r = dw.data.resource, hasActive = !!r.active_request;
+        o.drawerTitle = r.name;
+        o.dr = { date: fDate(r.expires_on), money: fMoney(r.amount_minor), category: r.category, canCreate: isInit && !hasActive, create: () => this.openCreate(r.id),
+          createNote: !isInit ? 'Создавать заявки может только инициатор.' : hasActive ? `Есть активная заявка ${r.active_request.id} — новую можно создать после её завершения или отклонения.` : '',
+          noRequests: dw.data.requests.length === 0,
+          requests: dw.data.requests.map(q => ({ id: q.id, href: '#/requests/' + q.id, chip: this.chip(q.status), prevDate: fDate(q.previous_expires_on), newDate: fDate(q.new_expires_on), money: fMoney(q.amount_minor), creator: q.created_by_name, created: fDT(q.created_at) })) };
+        o.dr.hasCreateNote = !!o.dr.createNote;
+      }
+    }
+    const av = dw && dw.mode === 'create' ? this.availableForCreate() : [];
+    const sel = av.find(r => r.id === s.createValue) || av[0];
+    if (dw && dw.mode === 'create') { o.drawerKicker = 'Продление на 30 календарных дней'; o.drawerTitle = 'Новая заявка'; }
+    Object.assign(o, {
+      noCreateOptions: av.length === 0, hasCreateOptions: av.length > 0,
+      createOptions: av.map(r => ({ value: r.id, label: `${r.name} · ${r.id}` })), createValue: sel ? sel.id : '',
+      onCreateChange: e => this.setState({ createValue: e.target.value }),
+      preview: sel ? { oldDate: fDate(sel.expires_on), newDate: fDate(addDays(sel.expires_on, 30)), money: fMoney(sel.amount_minor) } : {},
+      hasCreateError: !!(dw && dw.error && dw.mode === 'create'), createError: dw && dw.mode === 'create' && dw.error ? dw.error : '',
+      createBusy: !!(dw && dw.busy), createBtn: dw && dw.busy ? 'Создание…' : 'Создать заявку',
+      submitCreate: async e => {
+        e.preventDefault(); if (!sel || (dw && dw.busy)) return;
+        this.setState(st => ({ drawer: { ...st.drawer, busy: true, error: null } }));
+        try { const q = await this.call(() => this.apiCreate(sel.id)); this.setState({ drawer: null }); this.toast('ok', `${q.id} создана и ожидает согласования`); this.go('#/requests/' + q.id); }
+        catch (err) { this.setState(st => ({ drawer: st.drawer ? { ...st.drawer, busy: false, error: this.errText(err) } : null })); }
+      },
+    });
+
+    // dialog
+    const dg = s.dialog, dq = d && d.request;
+    const dlgText = { approve: 'После согласования заявка будет передана внешнему провайдеру. Все попытки используют один ключ операции и неизменный payload — повторного продления не будет.', reject: 'Заявка будет отклонена. Срок ресурса не изменится, операция не будет отправлена провайдеру.', retry: 'Предыдущая операция могла быть выполнена провайдером. Повторная обработка продолжит проверку с тем же ключом операции. Новая операция создаваться не будет.' };
+    const dlgBusy = { approve: 'Согласование…', reject: 'Отклонение…', retry: 'Запуск…' }, dlgOk = { approve: 'Согласовать заявку', reject: 'Отклонить заявку', retry: 'Повторить обработку' };
+    Object.assign(o, {
+      dialogOpen: !!dg && !!dq, dialogRef: this.dialogRef, dialogCancelRef: this.dialogCancelRef, dialogKeys: this.trap(this.dialogRef),
+      dialogTitle: dg ? { approve: 'Согласовать заявку?', reject: 'Отклонить заявку?', retry: 'Повторить обработку?' }[dg.kind] : '',
+      dialogText: dg ? dlgText[dg.kind] : '', dialogIsApprove: !!dg && dg.kind === 'approve', dialogIsReject: !!dg && dg.kind === 'reject', dialogIsRetry: !!dg && dg.kind === 'retry',
+      dialogBusy: !!dg && dg.busy, dialogConfirmLabel: dg ? (dg.busy ? dlgBusy[dg.kind] : dlgOk[dg.kind]) : '',
+      dialogHasError: !!dg && !!dg.error, dialogError: dg && dg.error ? dg.error : '',
+      dialogConfirm: () => this.confirmDialog(), closeDialog: this.closeDialog,
+      dlg: dq ? { id: dq.id, resource: dq.resource_name, prevDate: fDate(dq.previous_expires_on), newDate: fDate(dq.new_expires_on), money: fMoney(dq.amount_minor), key: dq.idempotency_key } : {},
+    });
+
+    // dev tools
+    const wsIds = u ? db.resources.filter(r => r.workspace_id === u.workspace_id).map(r => r.id) : db.resources.map(r => r.id);
+    Object.assign(o, {
+      devOpen: dev.open, devBtnLabel: dev.open ? 'Скрыть Developer / Demo Tools' : 'Developer / Demo Tools', toggleDev: () => this.setDev({ open: !dev.open }),
+      datasetOpts: [['core', 'Core dataset'], ['demo', 'Demo dataset']].map(([k, l]) => this.opt(l, dev.dataset === k, () => {
+        if (dev.dataset === k) return;
+        this.setDev({ dataset: k }, () => { this.loadDataset(k); localStorage.removeItem(K.ses); this.setState({ userId: null, drawer: null, dialog: null, loginEmail: '', loginPass: '', demoPick: '', loginError: '' }); this.resumeJobs(); this.toast('ok', `Загружен ${l}. Войдите заново.`); });
+      })),
+      datasetHint: dev.dataset === 'core' ? 'Контрольный сценарий: 3 ресурса, 4 аккаунта, без заявок.' : '15 ресурсов в Alpha, Beta, Orion; заявки во всех пяти статусах.',
+      providerOpts: [['sim', '503, затем 200 (как симулятор)'], ['exhaust', 'Всегда 503 — исчерпание попыток']].map(([k, l]) => this.opt(l, dev.provider === k, () => this.setDev({ provider: k }))),
+      delayValue: dev.delay, onDelay: e => this.setDev({ delay: e.target.value }),
+      screenOpts: [['data', 'Данные'], ['loading', 'Загрузка'], ['empty', 'Пусто'], ['error', 'Ошибка 500']].map(([k, l]) => this.opt(l, dev.screen === k, () => this.setDev({ screen: k }, () => this.loadView()))),
+      devId: s.devId, onDevId: e => this.setState({ devId: e.target.value }),
+      devOpenResource: () => { const id = s.devId.trim(); if (id) this.openDrawer(id); },
+      devOpenRequest: () => { const id = s.devId.trim(); if (id) this.go('#/requests/' + encodeURIComponent(id)); },
+      provStats: wsIds.map(id => { const ops = Object.values(this.prov.ops).filter(x => x.resource_id === id); return { id, count: this.prov.stats[id] || 0, started: ops.reduce((a, x) => a + x.started_count, 0) }; }),
+      provOps: Object.entries(this.prov.ops).filter(([, x]) => wsIds.includes(x.resource_id)).map(([k, x]) => ({ key: k, info: `${x.operation_id} · ${x.status} · started_count=${x.started_count}` })),
+      restartApp: () => location.reload(),
+      resetData: () => {
+        const sd = db.dataset === 'demo' ? seedDemo() : seedCore(); this.db = sd.db; this.prov = sd.prov; this.save();
+        this.setState({ drawer: null, dialog: null }); this.resumeJobs(); this.toast('ok', 'Набор данных сброшен'); this.loadView();
+      },
+    });
+    o.hasProvOps = o.provOps.length > 0;
+    o.toastOpen = !!s.toast; o.toastText = s.toast ? s.toast.text : ''; o.toastBorder = s.toast && s.toast.kind === 'error' ? 'rgba(255,156,138,0.6)' : 'rgba(127,214,164,0.5)';
+    return o;
+  }
+}
+</script>
+</body>
+</html>
