@@ -33,7 +33,11 @@ const E401 = ApiResponse({ status: 401, type: ErrorDto, description: 'unauthenti
 const E403 = (d: string) => ApiResponse({ status: 403, type: ErrorDto, description: d });
 const E404 = (d: string) => ApiResponse({ status: 404, type: ErrorDto, description: d });
 const E409 = (d: string) => ApiResponse({ status: 409, type: ErrorDto, description: d });
-const CSRF = ApiHeader({ name: 'X-CSRF-Token', required: true, description: 'From GET /auth/csrf' });
+const CSRF = ApiHeader({
+  name: 'X-CSRF-Token',
+  required: true,
+  description: 'From GET /auth/csrf',
+});
 const ORIGIN = ApiHeader({ name: 'Origin', required: true, description: 'Must equal APP_ORIGIN' });
 
 @ApiTags('resources')
@@ -60,9 +64,15 @@ export class ResourcesController {
   @E401
   @E403('workspace_forbidden')
   @E404('resource_not_found')
-  async get(@CurrentPrincipal() p: Principal, @Param('id', IdPipe) id: string): Promise<ResourceDetailDto> {
+  async get(
+    @CurrentPrincipal() p: Principal,
+    @Param('id', IdPipe) id: string,
+  ): Promise<ResourceDetailDto> {
     await this.read.assertResourceInWorkspace(p, id);
-    const [resource, requests] = await Promise.all([this.read.resource(p, id), this.read.resourceRequests(p, id)]);
+    const [resource, requests] = await Promise.all([
+      this.read.resource(p, id),
+      this.read.resourceRequests(p, id),
+    ]);
     return { resource, requests };
   }
 
@@ -70,7 +80,8 @@ export class ResourcesController {
   @HttpCode(201)
   @ApiOperation({
     summary: 'Создать заявку на +30 дней',
-    description: 'Тело пустое: срок, сумма и автор фиксируются сервером из текущего ресурса и сессии.',
+    description:
+      'Тело пустое: срок, сумма и автор фиксируются сервером из текущего ресурса и сессии.',
   })
   @ApiParam({ name: 'id', example: 'res-a-01' })
   @CSRF
@@ -113,7 +124,10 @@ export class RenewalsController {
   @E401
   @E403('workspace_forbidden')
   @E404('request_not_found')
-  async get(@CurrentPrincipal() p: Principal, @Param('id', IdPipe) id: string): Promise<RenewalDetailDto> {
+  async get(
+    @CurrentPrincipal() p: Principal,
+    @Param('id', IdPipe) id: string,
+  ): Promise<RenewalDetailDto> {
     await this.read.assertRequestInWorkspace(p, id);
     const request = await this.read.renewal(p, id);
     const [resource, events] = await Promise.all([
@@ -131,7 +145,9 @@ export class RenewalsController {
   @ORIGIN
   @ApiOkResponse({ type: RenewalDto })
   @E401
-  @E403('role_forbidden | workspace_forbidden | cannot_decide_own_request | csrf_invalid | origin_forbidden')
+  @E403(
+    'role_forbidden | workspace_forbidden | cannot_decide_own_request | csrf_invalid | origin_forbidden',
+  )
   @E404('request_not_found')
   @E409('invalid_status_transition | resource_changed')
   approve(
@@ -150,7 +166,9 @@ export class RenewalsController {
   @ORIGIN
   @ApiOkResponse({ type: RenewalDto })
   @E401
-  @E403('role_forbidden | workspace_forbidden | cannot_decide_own_request | csrf_invalid | origin_forbidden')
+  @E403(
+    'role_forbidden | workspace_forbidden | cannot_decide_own_request | csrf_invalid | origin_forbidden',
+  )
   @E404('request_not_found')
   @E409('invalid_status_transition')
   reject(

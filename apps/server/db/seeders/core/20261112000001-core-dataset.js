@@ -1,10 +1,11 @@
 'use strict';
 /**
- * Core dataset (DATASET=core, or DATASET=test for the isolated test DB).
+ * Core: 18 resources; DATASET=test retains the 3-resource acceptance fixture.
  * Idempotent: inserts missing stable rows only (ON CONFLICT DO NOTHING); never
  * resets a renewed expiry, never deletes history. Zero renewal requests.
  */
 const { WORKSPACES, USERS, RESOURCES } = require('../../data/core');
+const { EXTRA_RESOURCES } = require('../../data/core-extra');
 const { claimDataset, insertUsers } = require('../../data/seed-helpers');
 
 module.exports = {
@@ -14,7 +15,8 @@ module.exports = {
       await claimDataset(qi, kind, transaction);
       await qi.bulkInsert('workspaces', WORKSPACES, { transaction, ignoreDuplicates: true });
       await insertUsers(qi, USERS, transaction);
-      await qi.bulkInsert('resources', RESOURCES, { transaction, ignoreDuplicates: true });
+      const resources = kind === 'test' ? RESOURCES : [...RESOURCES, ...EXTRA_RESOURCES];
+      await qi.bulkInsert('resources', resources, { transaction, ignoreDuplicates: true });
     });
   },
 

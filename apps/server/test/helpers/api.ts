@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Test client deliberately accepts arbitrary JSON to assert invalid contracts. */
 import type { INestApplication } from '@nestjs/common';
 import type { AddressInfo } from 'node:net';
 import type { Sequelize } from 'sequelize-typescript';
@@ -12,7 +13,10 @@ export interface TestApi {
 }
 
 /** Real Nest API listening on an ephemeral loopback port (real HTTP, real DB). */
-export async function startApi(sequelize: Sequelize, over: Partial<ApiConfig> = {}): Promise<TestApi> {
+export async function startApi(
+  sequelize: Sequelize,
+  over: Partial<ApiConfig> = {},
+): Promise<TestApi> {
   const app = await createApp(testApiConfig(over), { sequelize });
   await app.listen(0, '127.0.0.1');
   const { port } = app.getHttpServer().address() as AddressInfo;
@@ -42,7 +46,8 @@ export class Client {
   ): Promise<Res<T>> {
     const headers: Record<string, string> = { Origin: this.origin, ...opts.headers };
     if (this.cookie) headers.Cookie = this.cookie;
-    if (this.csrf && method !== 'GET' && !('X-CSRF-Token' in headers)) headers['X-CSRF-Token'] = this.csrf;
+    if (this.csrf && method !== 'GET' && !('X-CSRF-Token' in headers))
+      headers['X-CSRF-Token'] = this.csrf;
     let body: string | undefined = opts.rawBody;
     if (opts.body !== undefined) {
       body = JSON.stringify(opts.body);

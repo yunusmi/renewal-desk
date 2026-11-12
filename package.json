@@ -1,7 +1,7 @@
 {
   "name": "renewaldesk",
   "private": true,
-  "description": "RenewalDesk — approval and execution of resource renewal requests",
+  "description": "RenewalDesk \u2014 approval and execution of resource renewal requests",
   "workspaces": [
     "apps/server",
     "apps/web"
@@ -18,6 +18,8 @@
     "test:integration": "npm run test:integration -w apps/server",
     "migrate": "npm run migrate -w apps/server",
     "seed:core": "npm run seed:core -w apps/server",
-    "seed:demo": "npm run seed:demo -w apps/server"
+    "seed:demo": "npm run seed:demo -w apps/server",
+    "test:recovery": "npm run test:integration -w apps/server -- --testPathPattern=recovery",
+    "test:e2e": "npm run test:e2e -w apps/web"
   }
 }

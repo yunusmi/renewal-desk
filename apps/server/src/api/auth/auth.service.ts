@@ -45,9 +45,15 @@ export class AuthService {
     }
   }
 
-  async login(emailRaw: string, password: string): Promise<{ token: string; principal: Principal }> {
+  async login(
+    emailRaw: string,
+    password: string,
+  ): Promise<{ token: string; principal: Principal }> {
     const email = emailRaw.trim().toLowerCase();
-    const user = await User.findOne({ where: { email }, attributes: ['id', 'passwordHash', 'isActive'] });
+    const user = await User.findOne({
+      where: { email },
+      attributes: ['id', 'passwordHash', 'isActive'],
+    });
     const ok = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !ok || !user.isActive) throw new ApiError(401, 'invalid_credentials');
 
@@ -55,7 +61,9 @@ export class AuthService {
       id: randomUUID(),
       userId: user.id,
       // DB clock; TTL is a validated integer from config.
-      expiresAt: this.sequelize.literal(`now() + make_interval(secs => ${Number(this.cfg.jwtTtlSeconds)})`),
+      expiresAt: this.sequelize.literal(
+        `now() + make_interval(secs => ${Number(this.cfg.jwtTtlSeconds)})`,
+      ),
     });
     const token = jwt.sign({ sid: session.id }, this.cfg.jwtSecret, {
       algorithm: 'HS256',
@@ -82,7 +90,12 @@ export class AuthService {
     } catch {
       throw unauthenticated();
     }
-    if (typeof claims.sub !== 'string' || typeof claims.sid !== 'string') throw unauthenticated();
+    if (
+      typeof claims.sub !== 'string' ||
+      typeof claims.sid !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claims.sid)
+    )
+      throw unauthenticated();
     const principal = await this.loadPrincipal(claims.sub, claims.sid);
     if (!principal) throw unauthenticated();
     return principal;
@@ -90,13 +103,20 @@ export class AuthService {
 
   private async loadPrincipal(userId: string, sessionId: string): Promise<Principal | null> {
     const session = await AuthSession.findOne({
-      where: { id: sessionId, userId, revokedAt: null, expiresAt: { [Op.gt]: this.sequelize.fn('now') } },
+      where: {
+        id: sessionId,
+        userId,
+        revokedAt: null,
+        expiresAt: { [Op.gt]: this.sequelize.fn('now') },
+      },
       include: [
         {
           model: User,
           as: 'user',
           where: { isActive: true },
-          include: [{ model: WorkspaceMember, as: 'membership', required: true, include: [Workspace] }],
+          include: [
+            { model: WorkspaceMember, as: 'membership', required: true, include: [Workspace] },
+          ],
         },
       ],
     });
@@ -116,13 +136,18 @@ export class AuthService {
   }
 
   async logout(sessionId: string): Promise<void> {
-    await AuthSession.update({ revokedAt: this.sequelize.fn('now') as unknown as Date }, {
-      where: { id: sessionId, revokedAt: null },
-    });
+    await AuthSession.update(
+      { revokedAt: this.sequelize.fn('now') as unknown as Date },
+      {
+        where: { id: sessionId, revokedAt: null },
+      },
+    );
   }
 
   csrfToken(sessionId: string): string {
-    return createHmac('sha256', this.cfg.csrfSecret).update(`csrf:${sessionId}`).digest('base64url');
+    return createHmac('sha256', this.cfg.csrfSecret)
+      .update(`csrf:${sessionId}`)
+      .digest('base64url');
   }
 
   verifyCsrf(sessionId: string, provided: string | undefined): boolean {

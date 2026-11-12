@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Op, type Includeable, type Order, type Transaction, type WhereOptions } from 'sequelize';
+import { AuditEvent, RenewalJob, RenewalRequest, Resource, User } from '../../database/models';
 import {
-  AuditEvent,
-  RenewalJob,
-  RenewalRequest,
-  Resource,
-  User,
-} from '../../database/models';
-import { ACTIVE_STATUSES, RENEWAL_STATUSES, type RenewalStatusValue } from '../../domain/renewal-rules';
+  ACTIVE_STATUSES,
+  RENEWAL_STATUSES,
+  type RenewalStatusValue,
+} from '../../domain/renewal-rules';
 import type { Principal } from '../auth/principal';
 import { forbidden, notFound } from '../common/errors';
 import type {
@@ -24,7 +22,8 @@ import type {
 
 /* Every query below is scoped by the caller's workspace_id from the session. */
 
-const iso = (v: Date | string | null | undefined): string | null => (v == null ? null : new Date(v).toISOString());
+const iso = (v: Date | string | null | undefined): string | null =>
+  v == null ? null : new Date(v).toISOString();
 
 const RENEWAL_INCLUDE: Includeable[] = [
   { model: Resource, as: 'resource', attributes: ['name', 'category'] },
@@ -120,25 +119,51 @@ export function likePattern(q: string): string {
 }
 
 const RESOURCE_ORDER: Record<string, Order> = {
-  expires_on: [['expiresOn', 'ASC'], ['id', 'ASC']],
-  '-expires_on': [['expiresOn', 'DESC'], ['id', 'ASC']],
-  amount_minor: [['amountMinor', 'ASC'], ['id', 'ASC']],
-  '-amount_minor': [['amountMinor', 'DESC'], ['id', 'ASC']],
+  expires_on: [
+    ['expiresOn', 'ASC'],
+    ['id', 'ASC'],
+  ],
+  '-expires_on': [
+    ['expiresOn', 'DESC'],
+    ['id', 'ASC'],
+  ],
+  amount_minor: [
+    ['amountMinor', 'ASC'],
+    ['id', 'ASC'],
+  ],
+  '-amount_minor': [
+    ['amountMinor', 'DESC'],
+    ['id', 'ASC'],
+  ],
 };
 
-const NEWEST: Order = [['createdAt', 'DESC'], ['id', 'DESC']];
+const NEWEST: Order = [
+  ['createdAt', 'DESC'],
+  ['id', 'DESC'],
+];
 
 @Injectable()
 export class ReadModel {
   /** 404 if the resource does not exist anywhere, 403 if it belongs to another workspace. */
-  async assertResourceInWorkspace(p: Principal, resourceId: string, transaction?: Transaction): Promise<void> {
+  async assertResourceInWorkspace(
+    p: Principal,
+    resourceId: string,
+    transaction?: Transaction,
+  ): Promise<void> {
     const r = await Resource.findByPk(resourceId, { attributes: ['workspaceId'], transaction });
     if (!r) throw notFound('resource_not_found');
     if (r.workspaceId !== p.workspaceId) throw forbidden('workspace_forbidden');
   }
 
-  async assertRequestInWorkspace(p: Principal, requestId: string, transaction?: Transaction): Promise<void> {
-    const r = await RenewalRequest.findByPk(requestId, { attributes: ['workspaceId'], transaction });
+  async assertRequestInWorkspace(
+    p: Principal,
+    requestId: string,
+    transaction?: Transaction,
+  ): Promise<void> {
+    const r = await RenewalRequest.findByPk(requestId, {
+      attributes: ['workspaceId'],
+      transaction,
+    });
     if (!r) throw notFound('request_not_found');
     if (r.workspaceId !== p.workspaceId) throw forbidden('workspace_forbidden');
   }
@@ -154,7 +179,10 @@ export class ReadModel {
   }
 
   async resource(p: Principal, id: string): Promise<ResourceDto> {
-    const r = await Resource.findOne({ where: { id, workspaceId: p.workspaceId }, include: [ACTIVE_INCLUDE] });
+    const r = await Resource.findOne({
+      where: { id, workspaceId: p.workspaceId },
+      include: [ACTIVE_INCLUDE],
+    });
     if (!r) throw notFound('resource_not_found');
     return toResourceDto(r);
   }
@@ -172,7 +200,10 @@ export class ReadModel {
     const rows = await AuditEvent.findAll({
       where: { workspaceId: p.workspaceId, requestId },
       include: AUDIT_INCLUDE,
-      order: [['occurredAt', 'ASC'], ['id', 'ASC']],
+      order: [
+        ['occurredAt', 'ASC'],
+        ['id', 'ASC'],
+      ],
     });
     return rows.map(toAuditDto);
   }
@@ -230,7 +261,13 @@ export class ReadModel {
       });
     }
     if (q.status) where.push({ status: q.status });
-    const order: Order = q.sort === 'created_at' ? [['createdAt', 'ASC'], ['id', 'ASC']] : NEWEST;
+    const order: Order =
+      q.sort === 'created_at'
+        ? [
+            ['createdAt', 'ASC'],
+            ['id', 'ASC'],
+          ]
+        : NEWEST;
     const limit = q.limit ?? 50;
     const offset = q.offset ?? 0;
 
@@ -261,7 +298,10 @@ export class ReadModel {
       where: { workspaceId },
       group: ['status'],
     })) as unknown as { status: RenewalStatusValue; count: number | string }[];
-    const counts = Object.fromEntries(RENEWAL_STATUSES.map((s) => [s, 0])) as Record<RenewalStatusValue, number>;
+    const counts = Object.fromEntries(RENEWAL_STATUSES.map((s) => [s, 0])) as Record<
+      RenewalStatusValue,
+      number
+    >;
     for (const g of grouped) counts[g.status] = Number(g.count);
     return counts;
   }
@@ -286,7 +326,10 @@ export class ReadModel {
     const page = await AuditEvent.findAndCountAll({
       where,
       include: AUDIT_INCLUDE,
-      order: [['occurredAt', 'DESC'], ['id', 'DESC']],
+      order: [
+        ['occurredAt', 'DESC'],
+        ['id', 'DESC'],
+      ],
       limit,
       offset,
       distinct: true,
@@ -328,7 +371,15 @@ export class ReadModel {
         order: RESOURCE_ORDER.expires_on,
         limit: 5,
       }),
-      AuditEvent.findAll({ where: ws, include: AUDIT_INCLUDE, order: [['occurredAt', 'DESC'], ['id', 'DESC']], limit: 6 }),
+      AuditEvent.findAll({
+        where: ws,
+        include: AUDIT_INCLUDE,
+        order: [
+          ['occurredAt', 'DESC'],
+          ['id', 'DESC'],
+        ],
+        limit: 6,
+      }),
     ]);
     return {
       workspace_id: p.workspaceId,

@@ -9,7 +9,7 @@ Tests are part of implementation, not future work. Use Jest for domain/unit and 
 ## Integration / API E2E matrix
 | ID | Scenario and assertions |
 |---|---|
-| A01 | Fresh migrated core DB: exact 2 spaces/3 resources/4 accounts/0 requests, all role login, password hash not plaintext, server session/cookie flags, no token in JSON. |
+| A01 | Fresh migrated minimal acceptance fixture (DATASET=test): exact 2 spaces/3 resources/4 accounts/0 requests, all role login, password hash not plaintext, server session/cookie flags, no token in JSON. |
 | A02 | Missing/invalid/expired/revoked auth →401; logout revokes old sid; incorrect login generic 401; rate limit; missing/wrong CSRF and wrong Origin →403, valid same-origin mutation works. |
 | A03 | Alpha/Beta list/overview/audit scoped; known foreign resource/request detail/create/approve/reject/retry →403; nonexistent ID →404; no data leak; foreign audit filter denied. |
 | A04 | Approver cannot create; initiator cannot approve/reject/retry; universal cannot approve/reject own; test both actions; role/workspace/author/amount/date payload spoofing rejected 400, no mutation. |
@@ -44,3 +44,7 @@ For race tests use real independent transactions/connections, not serial awaits;
 
 ## Gates
 `make lint`, `make typecheck`, `make build`, `make test`, `make test-integration`, `make test-e2e`, `make test-recovery` must be documented and executable; actual CI equivalents. Verify clean checkout build/start, migrations, seed, API docs loaded, test runs. Report commands/pass/fail/blocked, not invented counts or coverage. No arbitrary coverage threshold substituting required matrix. Tests use test DB/provider only, ordinary `make up` not destructive and not auto-running tests; `make verify` or `make up-test` one-command optional startup+tests. Prioritize P0; disclose incomplete cases.
+
+## Expanded Core (owner change, ADR-009)
+
+The default Core seed now inserts 18 resources (Alpha 15 / Beta 3). A01 and browser test fixtures intentionally retain the original minimal 3-resource DATASET=test. D01 additionally executes the actual DATASET=core seed twice in an explicitly isolated fixture and checks 18 total / 15 Alpha / 3 Beta / 4 users, tenant scoping, preservation of modified expiry/amount, requests/jobs and audit. Demo remains 15 resources / 7 users / 11 initial requests.

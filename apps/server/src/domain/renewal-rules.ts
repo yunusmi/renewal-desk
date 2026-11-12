@@ -28,7 +28,8 @@ export function addCalendarDays(isoDate: string, days: number): string {
   const m = ISO_DATE.exec(isoDate);
   if (!m) throw new Error(`invalid ISO date: ${isoDate}`);
   const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  if (d.toISOString().slice(0, 10) !== isoDate) throw new Error(`invalid calendar date: ${isoDate}`);
+  if (d.toISOString().slice(0, 10) !== isoDate)
+    throw new Error(`invalid calendar date: ${isoDate}`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
@@ -84,7 +85,11 @@ export interface ResourceState {
 }
 
 export function snapshotMatches(s: Snapshot, r: ResourceState): boolean {
-  return s.previousExpiresOn === r.expiresOn && s.amountMinor === r.amountMinor && s.currency === r.currency;
+  return (
+    s.previousExpiresOn === r.expiresOn &&
+    s.amountMinor === r.amountMinor &&
+    s.currency === r.currency
+  );
 }
 
 /** Exact 4-field provider payload, built only from the immutable request snapshot. */

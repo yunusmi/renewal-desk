@@ -10,7 +10,8 @@ import { createSequelize } from '../../database/sequelize';
     {
       provide: Sequelize,
       inject: [API_CONFIG, SHARED_SEQUELIZE],
-      useFactory: (cfg: ApiConfig, shared: Sequelize | null) => shared ?? createSequelize(cfg.databaseUrl),
+      useFactory: (cfg: ApiConfig, shared: Sequelize | null) =>
+        shared ?? createSequelize(cfg.databaseUrl),
     },
   ],
   exports: [Sequelize],

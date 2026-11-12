@@ -27,7 +27,9 @@ export class HealthController {
   async ready(): Promise<{ status: string; database: string }> {
     try {
       await this.sequelize.authenticate();
-      const applied = new Set((await SchemaMigration.findAll({ attributes: ['name'] })).map((m) => m.name));
+      const applied = new Set(
+        (await SchemaMigration.findAll({ attributes: ['name'] })).map((m) => m.name),
+      );
       if (EXPECTED_MIGRATIONS.some((m) => !applied.has(m))) throw new Error('pending migrations');
     } catch {
       throw new ApiError(503, 'service_unavailable');

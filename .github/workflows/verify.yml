@@ -1,0 +1,33 @@
+name: Verify
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COMPOSE_BAKE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.21.1'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: make verify
+      - name: Record dependency audit
+        if: always()
+        run: npm audit --json > dependency-audit.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-artifacts
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+            dependency-audit.json
+      - name: Cleanup isolated test project
+        if: always()
+        run: docker compose -p renewaldesk-test -f compose.test.yaml down

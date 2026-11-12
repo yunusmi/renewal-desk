@@ -24,7 +24,10 @@ export class AuthGuard implements CanActivate {
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     if (ctx.getType() !== 'http') return true;
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()]);
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
+      ctx.getHandler(),
+      ctx.getClass(),
+    ]);
     const unsafe = !SAFE_METHODS.has(req.method);
 
     if (isPublic) {

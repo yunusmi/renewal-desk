@@ -1,5 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AuditController, OverviewController, RenewalsController, ResourcesController } from './controllers';
+import {
+  AuditController,
+  OverviewController,
+  RenewalsController,
+  ResourcesController,
+} from './controllers';
 import { CommandsService } from './commands.service';
 import { ReadModel } from './read-model';
 

@@ -1,0 +1,15 @@
+services:
+  bootstrap:
+    image: renewaldesk-server:local
+    command: ["node", "dist/cli/demo-bootstrap.js"]
+    environment:
+      APP_ENV: development
+      DATASET: demo
+      DATABASE_URL: postgresql://renewaldesk:${POSTGRES_PASSWORD:?}@postgres:5432/renewaldesk
+      PROVIDER_BASE_URL: http://provider:8091
+    depends_on:
+      seed: { condition: service_completed_successfully }
+      provider: { condition: service_healthy }
+  worker:
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }

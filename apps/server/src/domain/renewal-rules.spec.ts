@@ -54,9 +54,15 @@ describe('permissions', () => {
     expect(decisionDenial(approver, pending)).toBeNull();
     expect(decisionDenial(universal, pending)).toBeNull();
     expect(decisionDenial(initiator, pending)).toBe('role_forbidden');
-    expect(decisionDenial(universal, { ...pending, createdBy: 'u-uni-a' })).toBe('cannot_decide_own_request');
-    expect(decisionDenial(approver, { ...pending, status: 'processing' })).toBe('invalid_status_transition');
-    expect(decisionDenial(approver, { ...pending, status: 'completed' })).toBe('invalid_status_transition');
+    expect(decisionDenial(universal, { ...pending, createdBy: 'u-uni-a' })).toBe(
+      'cannot_decide_own_request',
+    );
+    expect(decisionDenial(approver, { ...pending, status: 'processing' })).toBe(
+      'invalid_status_transition',
+    );
+    expect(decisionDenial(approver, { ...pending, status: 'completed' })).toBe(
+      'invalid_status_transition',
+    );
   });
 
   it('retry: approver on requires_attention only', () => {
@@ -70,15 +76,33 @@ describe('permissions', () => {
 describe('snapshot and payload', () => {
   const snap = { previousExpiresOn: '2027-03-01', amountMinor: 128000, currency: 'RUB' };
   it('detects expiry, amount or currency drift', () => {
-    expect(snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128000, currency: 'RUB' })).toBe(true);
-    expect(snapshotMatches(snap, { expiresOn: '2027-03-31', amountMinor: 128000, currency: 'RUB' })).toBe(false);
-    expect(snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128001, currency: 'RUB' })).toBe(false);
-    expect(snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128000, currency: 'USD' })).toBe(false);
+    expect(
+      snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128000, currency: 'RUB' }),
+    ).toBe(true);
+    expect(
+      snapshotMatches(snap, { expiresOn: '2027-03-31', amountMinor: 128000, currency: 'RUB' }),
+    ).toBe(false);
+    expect(
+      snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128001, currency: 'RUB' }),
+    ).toBe(false);
+    expect(
+      snapshotMatches(snap, { expiresOn: '2027-03-01', amountMinor: 128000, currency: 'USD' }),
+    ).toBe(false);
   });
 
   it('builds exactly the 4 provider fields', () => {
     const p = providerPayload({ resourceId: 'res-a-01', amountMinor: 128000, currency: 'RUB' });
-    expect(p).toEqual({ resource_id: 'res-a-01', period_months: 1, amount_minor: 128000, currency: 'RUB' });
-    expect(Object.keys(p).sort()).toEqual(['amount_minor', 'currency', 'period_months', 'resource_id']);
+    expect(p).toEqual({
+      resource_id: 'res-a-01',
+      period_months: 1,
+      amount_minor: 128000,
+      currency: 'RUB',
+    });
+    expect(Object.keys(p).sort()).toEqual([
+      'amount_minor',
+      'currency',
+      'period_months',
+      'resource_id',
+    ]);
   });
 });

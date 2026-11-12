@@ -1,11 +1,4 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 /** Error codes exposed by the API (snake_case). */
@@ -94,10 +87,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let body: ErrorBody;
 
     if (exception instanceof ApiError) {
-      body = { status_code: exception.getStatus(), error_code: exception.errorCode, message: exception.message };
+      body = {
+        status_code: exception.getStatus(),
+        error_code: exception.errorCode,
+        message: exception.message,
+      };
     } else if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const code = STATUS_TO_CODE[status] ?? (status >= 500 ? 'internal_error' : 'validation_error');
+      const code =
+        STATUS_TO_CODE[status] ?? (status >= 500 ? 'internal_error' : 'validation_error');
       body = { status_code: status, error_code: code, message: DEFAULT_MESSAGES[code] };
       if (status === 400) {
         const details = (exception.getResponse() as { message?: unknown }).message;
@@ -110,19 +108,34 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const code: ErrorCode = status === 413 ? 'payload_too_large' : 'validation_error';
       body = { status_code: status, error_code: code, message: DEFAULT_MESSAGES[code] };
     } else {
-      body = { status_code: 500, error_code: 'internal_error', message: DEFAULT_MESSAGES.internal_error };
+      body = {
+        status_code: 500,
+        error_code: 'internal_error',
+        message: DEFAULT_MESSAGES.internal_error,
+      };
       const err = exception instanceof Error ? exception : new Error(String(exception));
-      this.logger.error({ err: { name: err.name, message: err.message }, path: req.path }, 'unhandled error');
+      this.logger.error(
+        { error_type: err.name, error_code: 'internal_error', path: req.path },
+        'unhandled error',
+      );
     }
     res.status(body.status_code).json(body);
   }
 }
 
 function isBodyParserError(e: unknown): e is { status?: number; type: string } {
-  return typeof e === 'object' && e !== null && 'type' in e && typeof (e as { type: unknown }).type === 'string'
-    && ['entity.parse.failed', 'entity.too.large', 'encoding.unsupported', 'charset.unsupported'].includes(
-      (e as { type: string }).type,
-    );
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'type' in e &&
+    typeof (e as { type: unknown }).type === 'string' &&
+    [
+      'entity.parse.failed',
+      'entity.too.large',
+      'encoding.unsupported',
+      'charset.unsupported',
+    ].includes((e as { type: string }).type)
+  );
 }
 
 /** PostgreSQL error introspection for mapping known constraint violations. */

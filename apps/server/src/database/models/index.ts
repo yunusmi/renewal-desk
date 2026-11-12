@@ -20,11 +20,7 @@ export const ACTIVE_STATUS_LIST = ['pending_approval', 'processing', 'requires_a
 const opts = { underscored: true, timestamps: false } as const;
 
 export type RenewalStatus =
-  | 'pending_approval'
-  | 'processing'
-  | 'completed'
-  | 'rejected'
-  | 'requires_attention';
+  'pending_approval' | 'processing' | 'completed' | 'rejected' | 'requires_attention';
 export type ProviderConfirmation = 'pending' | 'uncertain' | 'confirmed' | 'not_confirmed';
 export type JobStatus = 'queued' | 'leased' | 'done' | 'attention';
 export type JobPhase = 'post' | 'check';
@@ -79,7 +75,11 @@ export class Resource extends Model {
   @Column(DataType.DATE) declare createdAt: Date;
   @Column(DataType.DATE) declare updatedAt: Date;
   /** At most one by the partial unique index uq_renewal_active_resource. */
-  @HasOne(() => RenewalRequest, { foreignKey: 'resourceId', as: 'activeRequest', scope: { status: ACTIVE_STATUS_LIST } })
+  @HasOne(() => RenewalRequest, {
+    foreignKey: 'resourceId',
+    as: 'activeRequest',
+    scope: { status: ACTIVE_STATUS_LIST },
+  })
   declare activeRequest?: RenewalRequest | null;
   @HasMany(() => RenewalRequest, { foreignKey: 'resourceId', as: 'requests' })
   declare requests?: RenewalRequest[];
@@ -105,7 +105,8 @@ export class RenewalRequest extends Model {
   @Column(DataType.TEXT) declare attentionReason: string | null;
   @Column(DataType.TEXT) declare fixtureOrigin: 'demo_history' | null;
   @Column(DataType.DATE) declare updatedAt: Date;
-  @BelongsTo(() => Resource, { foreignKey: 'resourceId', as: 'resource' }) declare resource?: Resource;
+  @BelongsTo(() => Resource, { foreignKey: 'resourceId', as: 'resource' })
+  declare resource?: Resource;
   @BelongsTo(() => User, { foreignKey: 'createdBy', as: 'creator' }) declare creator?: User;
   @BelongsTo(() => User, { foreignKey: 'decidedBy', as: 'decider' }) declare decider?: User | null;
   @HasOne(() => RenewalJob, { foreignKey: 'requestId', as: 'job' }) declare job?: RenewalJob | null;
@@ -148,7 +149,8 @@ export class AuditEvent extends Model {
   @Column(DataType.TEXT) declare detail: string;
   @Column(DataType.TEXT) declare fixtureOrigin: 'demo_history' | null;
   @BelongsTo(() => User, { foreignKey: 'actorId', as: 'actor' }) declare actor?: User | null;
-  @BelongsTo(() => Resource, { foreignKey: 'resourceId', as: 'resource' }) declare resource?: Resource;
+  @BelongsTo(() => Resource, { foreignKey: 'resourceId', as: 'resource' })
+  declare resource?: Resource;
 }
 
 /** sequelize-cli migration ledger (read-only for readiness checks). */

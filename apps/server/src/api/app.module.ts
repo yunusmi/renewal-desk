@@ -15,7 +15,12 @@ export class AppModule {
     return {
       module: AppModule,
       global: true,
-      imports: [LoggerModule.forRoot(pinoParams(cfg.logLevel)), DatabaseModule, AuthModule, RenewalsModule],
+      imports: [
+        LoggerModule.forRoot(pinoParams(cfg.logLevel)),
+        DatabaseModule,
+        AuthModule,
+        RenewalsModule,
+      ],
       controllers: [HealthController],
       providers: [
         { provide: API_CONFIG, useValue: cfg },

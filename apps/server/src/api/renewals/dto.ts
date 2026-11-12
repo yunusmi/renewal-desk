@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsISO8601, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { RENEWAL_STATUSES, type RenewalStatusValue } from '../../domain/renewal-rules';
 
 /* ---------- response DTOs (explicit snake_case, never ORM instances) ---------- */
@@ -16,9 +26,11 @@ export class ResourceDto {
   @ApiProperty({ example: 'Хранилище A' }) name!: string;
   @ApiProperty({ example: 'Облачные хранилища' }) category!: string;
   @ApiProperty({ example: '2027-03-01', format: 'date' }) expires_on!: string;
-  @ApiProperty({ example: 128000, description: 'Integer minor units (kopecks)' }) amount_minor!: number;
+  @ApiProperty({ example: 128000, description: 'Integer minor units (kopecks)' })
+  amount_minor!: number;
   @ApiProperty({ enum: ['RUB'] }) currency!: 'RUB';
-  @ApiProperty({ type: ActiveRequestRefDto, nullable: true }) active_request!: ActiveRequestRefDto | null;
+  @ApiProperty({ type: ActiveRequestRefDto, nullable: true })
+  active_request!: ActiveRequestRefDto | null;
 }
 
 export class RenewalDto {
@@ -32,17 +44,22 @@ export class RenewalDto {
   @ApiProperty({ example: 128000 }) amount_minor!: number;
   @ApiProperty({ enum: ['RUB'] }) currency!: 'RUB';
   @ApiProperty({ enum: RENEWAL_STATUSES }) status!: RenewalStatusValue;
-  @ApiProperty({ example: 'renewal:00000000-0000-4000-8000-000000000000' }) idempotency_key!: string;
+  @ApiProperty({ example: 'renewal:00000000-0000-4000-8000-000000000000' })
+  idempotency_key!: string;
   @ApiProperty({ example: 'u-ini-a' }) created_by!: string;
   @ApiProperty({ example: 'Инициатор Alpha' }) created_by_name!: string;
   @ApiProperty({ format: 'date-time' }) created_at!: string;
   @ApiProperty({ nullable: true, type: String }) decided_by!: string | null;
   @ApiProperty({ nullable: true, type: String }) decided_by_name!: string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) decided_at!: string | null;
-  @ApiProperty({ description: 'POST slots reserved in the current automatic cycle (possibly sent)' })
+  @ApiProperty({
+    description: 'POST slots reserved in the current automatic cycle (possibly sent)',
+  })
   post_attempts!: number;
-  @ApiProperty({ description: 'POST slots reserved across all cycles' }) post_attempts_total!: number;
-  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) last_attempt_at!: string | null;
+  @ApiProperty({ description: 'POST slots reserved across all cycles' })
+  post_attempts_total!: number;
+  @ApiProperty({ nullable: true, type: String, format: 'date-time' }) last_attempt_at!:
+    string | null;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' }) next_check_at!: string | null;
   @ApiProperty({ enum: ['pending', 'uncertain', 'confirmed', 'not_confirmed'] })
   provider_confirmation!: 'pending' | 'uncertain' | 'confirmed' | 'not_confirmed';
@@ -60,7 +77,8 @@ export class AuditEventDto {
   @ApiProperty({ format: 'date-time' }) occurred_at!: string;
   @ApiProperty({ example: 'provider_post' }) type!: string;
   @ApiProperty({ nullable: true, type: String }) actor_id!: string | null;
-  @ApiProperty({ nullable: true, type: String, description: 'null = system' }) actor_name!: string | null;
+  @ApiProperty({ nullable: true, type: String, description: 'null = system' }) actor_name!:
+    string | null;
   @ApiProperty({ nullable: true, enum: RENEWAL_STATUSES }) from_status!: RenewalStatusValue | null;
   @ApiProperty({ nullable: true, enum: RENEWAL_STATUSES }) to_status!: RenewalStatusValue | null;
   @ApiProperty({ nullable: true, type: String }) result!: string | null;
@@ -105,7 +123,10 @@ export class ResourceDetailDto {
 
 export class RenewalDetailDto {
   @ApiProperty({ type: RenewalDto }) request!: RenewalDto;
-  @ApiProperty({ type: ResourceDto, description: 'Current resource state (expires_on is live, not snapshot)' })
+  @ApiProperty({
+    type: ResourceDto,
+    description: 'Current resource state (expires_on is live, not snapshot)',
+  })
   resource!: ResourceDto;
   @ApiProperty({ type: [AuditEventDto] }) events!: AuditEventDto[];
 }
@@ -136,45 +157,70 @@ const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? val
 
 class PageQuery {
   @ApiPropertyOptional({ default: 50, minimum: 1, maximum: 100 })
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
 
   @ApiPropertyOptional({ default: 0, minimum: 0 })
-  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(1000000)
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000000)
   offset?: number;
 }
 
-export const RESOURCE_SORTS = ['expires_on', '-expires_on', 'amount_minor', '-amount_minor'] as const;
+export const RESOURCE_SORTS = [
+  'expires_on',
+  '-expires_on',
+  'amount_minor',
+  '-amount_minor',
+] as const;
 
 export class ResourceListQuery extends PageQuery {
   @ApiPropertyOptional({ maxLength: 200, description: 'Name or ID, case-insensitive contains' })
-  @IsOptional() @Transform(trim) @IsString() @MaxLength(200)
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
   q?: string;
 
   @ApiPropertyOptional({ maxLength: 200 })
-  @IsOptional() @IsString() @MaxLength(200)
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   category?: string;
 
   @ApiPropertyOptional({ enum: ['true', 'false'] })
-  @IsOptional() @IsIn(['true', 'false'])
+  @IsOptional()
+  @IsIn(['true', 'false'])
   has_active?: 'true' | 'false';
 
   @ApiPropertyOptional({ enum: RESOURCE_SORTS, default: 'expires_on' })
-  @IsOptional() @IsIn(RESOURCE_SORTS)
+  @IsOptional()
+  @IsIn(RESOURCE_SORTS)
   sort?: (typeof RESOURCE_SORTS)[number];
 }
 
 export class RenewalListQuery extends PageQuery {
   @ApiPropertyOptional({ maxLength: 200, description: 'Request ID, resource name or creator name' })
-  @IsOptional() @Transform(trim) @IsString() @MaxLength(200)
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
   q?: string;
 
   @ApiPropertyOptional({ enum: RENEWAL_STATUSES })
-  @IsOptional() @IsIn(RENEWAL_STATUSES)
+  @IsOptional()
+  @IsIn(RENEWAL_STATUSES)
   status?: RenewalStatusValue;
 
   @ApiPropertyOptional({ enum: ['-created_at', 'created_at'], default: '-created_at' })
-  @IsOptional() @IsIn(['-created_at', 'created_at'])
+  @IsOptional()
+  @IsIn(['-created_at', 'created_at'])
   sort?: '-created_at' | 'created_at';
 }
 
@@ -195,18 +241,23 @@ export const AUDIT_TYPES = [
 
 export class AuditListQuery extends PageQuery {
   @ApiPropertyOptional({ example: 'res-a-01' })
-  @IsOptional() @IsString() @Matches(/^[a-z0-9-]{1,64}$/)
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-z0-9-]{1,64}$/)
   resource_id?: string;
 
   @ApiPropertyOptional({ enum: AUDIT_TYPES })
-  @IsOptional() @IsIn(AUDIT_TYPES)
+  @IsOptional()
+  @IsIn(AUDIT_TYPES)
   type?: (typeof AUDIT_TYPES)[number];
 
   @ApiPropertyOptional({ format: 'date-time', description: 'Inclusive, ISO 8601 UTC' })
-  @IsOptional() @IsISO8601({ strict: true })
+  @IsOptional()
+  @IsISO8601({ strict: true })
   from?: string;
 
   @ApiPropertyOptional({ format: 'date-time', description: 'Exclusive, ISO 8601 UTC' })
-  @IsOptional() @IsISO8601({ strict: true })
+  @IsOptional()
+  @IsISO8601({ strict: true })
   to?: string;
 }

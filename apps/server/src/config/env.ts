@@ -86,7 +86,12 @@ export function loadDbConfig(env: Env = process.env): DbConfig {
     appEnv: oneOf(env, 'APP_ENV', APP_ENVS, 'development'),
     dataset: oneOf(env, 'DATASET', DATASETS, 'core'),
     databaseUrl: required(env, 'DATABASE_URL'),
-    logLevel: oneOf(env, 'LOG_LEVEL', ['fatal', 'error', 'warn', 'info', 'debug', 'silent'], 'info'),
+    logLevel: oneOf(
+      env,
+      'LOG_LEVEL',
+      ['fatal', 'error', 'warn', 'info', 'debug', 'silent'],
+      'info',
+    ),
   };
 }
 
@@ -99,7 +104,8 @@ export function loadApiConfig(env: Env = process.env): ApiConfig {
   } catch {
     throw new ConfigError('APP_ORIGIN must be an absolute origin, e.g. http://localhost:8080');
   }
-  if (parsed.origin !== appOrigin) throw new ConfigError('APP_ORIGIN must be an origin without path');
+  if (parsed.origin !== appOrigin)
+    throw new ConfigError('APP_ORIGIN must be an origin without path');
   const jwtSecret = secret(env, 'JWT_SECRET', db.appEnv);
   const csrfSecret = secret(env, 'CSRF_SECRET', db.appEnv);
   if (jwtSecret === csrfSecret) throw new ConfigError('JWT_SECRET and CSRF_SECRET must differ');

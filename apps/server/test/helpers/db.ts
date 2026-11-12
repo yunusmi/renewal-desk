@@ -30,7 +30,17 @@ export async function resetTestDb(sequelize: Sequelize): Promise<void> {
   assertTestDatabase(TEST_DATABASE_URL);
   const meta = await DatasetMeta.findByPk('dataset_kind');
   if (meta && meta.value !== 'test') throw new Error(`refusing to reset dataset ${meta.value}`);
-  const models = [AuditEvent, RenewalJob, RenewalRequest, AuthSession, Resource, WorkspaceMember, User, Workspace, DatasetMeta];
+  const models = [
+    AuditEvent,
+    RenewalJob,
+    RenewalRequest,
+    AuthSession,
+    Resource,
+    WorkspaceMember,
+    User,
+    Workspace,
+    DatasetMeta,
+  ];
   for (const model of models as unknown as ModelStatic<Model>[]) {
     await model.truncate({ cascade: true, restartIdentity: true });
   }

@@ -68,9 +68,17 @@ export class AuthController {
   @ApiNoContentResponse({ description: 'Сессия отозвана, cookie очищена' })
   @ApiResponse({ status: 401, type: ErrorDto })
   @ApiResponse({ status: 403, type: ErrorDto, description: 'csrf_invalid | origin_forbidden' })
-  async logout(@CurrentPrincipal() p: Principal, @Res({ passthrough: true }) res: Response): Promise<void> {
+  async logout(
+    @CurrentPrincipal() p: Principal,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
     await this.auth.logout(p.sessionId);
-    res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: 'strict', secure: this.cfg.cookieSecure, path: '/' });
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: this.cfg.cookieSecure,
+      path: '/',
+    });
   }
 
   @Get('me')

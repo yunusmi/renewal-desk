@@ -22,7 +22,8 @@ export function pinoParams(level: string): Params {
     pinoHttp: {
       level,
       redact: { paths: REDACT_PATHS, censor: '[redacted]' },
-      genReqId: (req) => (req.headers['x-request-id'] as string | undefined)?.slice(0, 64) || randomUUID(),
+      genReqId: (req) =>
+        (req.headers['x-request-id'] as string | undefined)?.slice(0, 64) || randomUUID(),
       // Only allowlisted request metadata; bodies are never logged.
       serializers: {
         req: (req: { id: string; method: string; url: string }) => ({

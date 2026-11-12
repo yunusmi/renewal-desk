@@ -19,11 +19,13 @@ export const IS_PUBLIC = 'renewaldesk:is_public';
 /** Route requires no session (login only). Origin check still applies to unsafe methods. */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
-export const CurrentPrincipal = createParamDecorator((_: unknown, ctx: ExecutionContext): Principal => {
-  const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-  if (!req.principal) throw new Error('principal missing: route is not behind AuthGuard');
-  return req.principal;
-});
+export const CurrentPrincipal = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): Principal => {
+    const req = ctx.switchToHttp().getRequest<AuthedRequest>();
+    if (!req.principal) throw new Error('principal missing: route is not behind AuthGuard');
+    return req.principal;
+  },
+);
 
 export function rolesOf(p: Principal): ('initiator' | 'approver')[] {
   const roles: ('initiator' | 'approver')[] = [];

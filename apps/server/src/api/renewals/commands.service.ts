@@ -40,7 +40,10 @@ export class CommandsService {
   ) {}
 
   private tx<T>(fn: (t: Transaction) => Promise<T>): Promise<T> {
-    return this.sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED }, fn);
+    return this.sequelize.transaction(
+      { isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED },
+      fn,
+    );
   }
 
   private fault(point: string): void {
@@ -95,12 +98,17 @@ export class CommandsService {
       });
       return this.read.renewal(p, id);
     } catch (err) {
-      if (pgConstraint(err) === 'uq_renewal_active_resource') throw conflict('active_renewal_exists');
+      if (pgConstraint(err) === 'uq_renewal_active_resource')
+        throw conflict('active_renewal_exists');
       throw err;
     }
   }
 
-  private async lockRequest(p: Principal, id: string, transaction: Transaction): Promise<RenewalRequest> {
+  private async lockRequest(
+    p: Principal,
+    id: string,
+    transaction: Transaction,
+  ): Promise<RenewalRequest> {
     const req = await RenewalRequest.findOne({
       where: { id, workspaceId: p.workspaceId },
       lock: transaction.LOCK.UPDATE,
@@ -135,7 +143,11 @@ export class CommandsService {
         lock: transaction.LOCK.UPDATE,
         transaction,
       });
-      const snapshot = { previousExpiresOn: req.previousExpiresOn, amountMinor: req.amountMinor, currency: req.currency };
+      const snapshot = {
+        previousExpiresOn: req.previousExpiresOn,
+        amountMinor: req.amountMinor,
+        currency: req.currency,
+      };
       if (!res || !snapshotMatches(snapshot, res)) throw conflict('resource_changed');
 
       await this.transition(transaction, id, 'pending_approval', {
@@ -212,7 +224,11 @@ export class CommandsService {
       const req = await this.lockRequest(p, id, transaction);
       const d = retryDenial(p, { status: req.status });
       if (d) throw deny(d);
-      const job = await RenewalJob.findOne({ where: { requestId: id }, lock: transaction.LOCK.UPDATE, transaction });
+      const job = await RenewalJob.findOne({
+        where: { requestId: id },
+        lock: transaction.LOCK.UPDATE,
+        transaction,
+      });
       if (!job) throw conflict('invalid_status_transition');
       await this.transition(transaction, id, 'requires_attention', {
         status: 'processing',

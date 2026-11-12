@@ -8,6 +8,7 @@ import type { Sequelize } from 'sequelize-typescript';
 import type { ApiConfig } from '../config/env';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/errors';
+import { setupDocs } from './docs';
 
 export const API_PREFIX = 'api/v1';
 
@@ -16,10 +17,13 @@ export async function createApp(
   cfg: ApiConfig,
   opts: { sequelize?: Sequelize; logger?: false } = {},
 ): Promise<INestApplication> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(cfg, opts.sequelize ?? null), {
-    bufferLogs: true,
-    bodyParser: false,
-  });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.forRoot(cfg, opts.sequelize ?? null),
+    {
+      bufferLogs: true,
+      bodyParser: false,
+    },
+  );
   app.useLogger(app.get(Logger));
   app.set('trust proxy', 'loopback, uniquelocal');
   app.disable('x-powered-by');
@@ -41,6 +45,7 @@ export async function createApp(
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
+  setupDocs(app);
   app.enableShutdownHooks();
   return app;
 }

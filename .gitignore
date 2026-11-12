@@ -11,3 +11,6 @@ playwright-report/
 artifacts/
 .DS_Store
 *.tsbuildinfo
+
+__pycache__/
+apps/server/public/docs/

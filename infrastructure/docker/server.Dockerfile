@@ -27,6 +27,7 @@ COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev -w apps/server --no-audit --no-fund
 COPY --from=build /repo/apps/server/dist apps/server/dist
+COPY --from=build /repo/apps/server/public apps/server/public
 COPY apps/server/db apps/server/db
 COPY apps/server/.sequelizerc apps/server/.sequelizerc
 WORKDIR /app/apps/server

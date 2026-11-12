@@ -1,6 +1,13 @@
 import jwt from 'jsonwebtoken';
 import type { Sequelize } from 'sequelize-typescript';
-import { AuthSession, RenewalRequest, Resource, User, Workspace, WorkspaceMember } from '../src/database/models';
+import {
+  AuthSession,
+  RenewalRequest,
+  Resource,
+  User,
+  Workspace,
+  WorkspaceMember,
+} from '../src/database/models';
 import { Client, EMAILS, loggedIn, startApi, type TestApi } from './helpers/api';
 import { resetTestDb, testSequelize } from './helpers/db';
 
@@ -23,7 +30,9 @@ describe('A01 core dataset and login', () => {
     expect(await User.count()).toBe(4);
     expect(await RenewalRequest.count()).toBe(0);
     const res = await Resource.findAll({ order: [['id', 'ASC']], raw: true });
-    expect(res.map((r) => [r.id, r.workspaceId, r.name, r.expiresOn, r.amountMinor, r.currency])).toEqual([
+    expect(
+      res.map((r) => [r.id, r.workspaceId, r.name, r.expiresOn, r.amountMinor, r.currency]),
+    ).toEqual([
       ['res-a-01', 'alpha', 'Хранилище A', '2027-03-01', 128000, 'RUB'],
       ['res-a-02', 'alpha', 'Сервис B', '2027-05-20', 250000, 'RUB'],
       ['res-b-01', 'beta', 'Сервис C', '2027-06-01', 150000, 'RUB'],
@@ -44,27 +53,43 @@ describe('A01 core dataset and login', () => {
     }
   });
 
-  it.each(Object.entries(EMAILS))('%s logs in with HttpOnly SameSite=Strict cookie, no token in JSON', async (_, email) => {
-    const c = new Client(api.baseUrl);
-    const res = await c.login(email);
-    expect(res.status).toBe(200);
-    const setCookie = res.headers.get('set-cookie')!;
-    expect(setCookie).toMatch(/^renewaldesk_session=/);
-    expect(setCookie).toMatch(/HttpOnly/i);
-    expect(setCookie).toMatch(/SameSite=Strict/i);
-    expect(setCookie).toMatch(/Path=\//);
-    expect(JSON.stringify(res.body)).not.toMatch(/eyJ|token|password/i);
-    expect(Object.keys(res.body.user).sort()).toEqual(['email', 'id', 'name', 'roles', 'workspace_id', 'workspace_name']);
-    const me = await c.get('/auth/me');
-    expect(me.status).toBe(200);
-    expect(me.body.email).toBe(email);
-  });
+  it.each(Object.entries(EMAILS))(
+    '%s logs in with HttpOnly SameSite=Strict cookie, no token in JSON',
+    async (_, email) => {
+      const c = new Client(api.baseUrl);
+      const res = await c.login(email);
+      expect(res.status).toBe(200);
+      const setCookie = res.headers.get('set-cookie')!;
+      expect(setCookie).toMatch(/^renewaldesk_session=/);
+      expect(setCookie).toMatch(/HttpOnly/i);
+      expect(setCookie).toMatch(/SameSite=Strict/i);
+      expect(setCookie).toMatch(/Path=\//);
+      expect(JSON.stringify(res.body)).not.toMatch(/eyJ|token|password/i);
+      expect(Object.keys(res.body.user).sort()).toEqual([
+        'email',
+        'id',
+        'name',
+        'roles',
+        'workspace_id',
+        'workspace_name',
+      ]);
+      const me = await c.get('/auth/me');
+      expect(me.status).toBe(200);
+      expect(me.body.email).toBe(email);
+    },
+  );
 
   it('returns roles from DB membership', async () => {
     const uni = await loggedIn(api.baseUrl, EMAILS.uniA);
-    expect((await uni.get('/auth/me')).body).toMatchObject({ workspace_id: 'alpha', roles: ['initiator', 'approver'] });
+    expect((await uni.get('/auth/me')).body).toMatchObject({
+      workspace_id: 'alpha',
+      roles: ['initiator', 'approver'],
+    });
     const iniB = await loggedIn(api.baseUrl, EMAILS.iniB);
-    expect((await iniB.get('/auth/me')).body).toMatchObject({ workspace_id: 'beta', roles: ['initiator'] });
+    expect((await iniB.get('/auth/me')).body).toMatchObject({
+      workspace_id: 'beta',
+      roles: ['initiator'],
+    });
   });
 });
 
@@ -107,7 +132,9 @@ describe('A02 authentication, sessions, CSRF and Origin', () => {
 
   it('unsafe requests require exact Origin and a session-bound CSRF token', async () => {
     const c = await loggedIn(api.baseUrl, EMAILS.iniA);
-    const noCsrf = await c.request('POST', '/api/v1/resources/res-a-01/renewals', { headers: { 'X-CSRF-Token': '' } });
+    const noCsrf = await c.request('POST', '/api/v1/resources/res-a-01/renewals', {
+      headers: { 'X-CSRF-Token': '' },
+    });
     expect(noCsrf.status).toBe(403);
     expect(noCsrf.body.error_code).toBe('csrf_invalid');
 
@@ -135,7 +162,8 @@ describe('A02 authentication, sessions, CSRF and Origin', () => {
     const limited = await startApi(sequelize, { loginRateLimit: 3 });
     try {
       const statuses: number[] = [];
-      for (let i = 0; i < 5; i++) statuses.push((await new Client(limited.baseUrl).login(EMAILS.iniA, 'bad')).status);
+      for (let i = 0; i < 5; i++)
+        statuses.push((await new Client(limited.baseUrl).login(EMAILS.iniA, 'bad')).status);
       expect(statuses).toEqual([401, 401, 401, 429, 429]);
     } finally {
       await limited.close();
@@ -144,7 +172,9 @@ describe('A02 authentication, sessions, CSRF and Origin', () => {
 
   it('rejects malformed JSON and unknown login fields with 400', async () => {
     const c = new Client(api.baseUrl);
-    expect((await c.request('POST', '/api/v1/auth/login', { rawBody: '{bad' })).body.error_code).toBe('validation_error');
+    expect(
+      (await c.request('POST', '/api/v1/auth/login', { rawBody: '{bad' })).body.error_code,
+    ).toBe('validation_error');
     const extra = await c.request('POST', '/api/v1/auth/login', {
       body: { email: EMAILS.iniA, password: 'demo1234', role: 'approver' },
     });
@@ -161,7 +191,9 @@ describe('A03 workspace isolation', () => {
 
   it('Beta lists only Beta data', async () => {
     const b = await loggedIn(api.baseUrl, EMAILS.iniB);
-    expect((await b.get('/resources')).body.items.map((r: { id: string }) => r.id)).toEqual(['res-b-01']);
+    expect((await b.get('/resources')).body.items.map((r: { id: string }) => r.id)).toEqual([
+      'res-b-01',
+    ]);
     expect((await b.get('/renewals')).body).toMatchObject({ total: 0, workspace_total: 0 });
     expect((await b.get('/audit-events')).body.total).toBe(0);
     const ov = (await b.get('/overview')).body;
@@ -209,7 +241,11 @@ describe('A04 roles and spoofing', () => {
     const id = (await uni.post('/resources/res-a-02/renewals')).body.id;
     for (const action of ['approve', 'reject']) {
       const res = await uni.post(`/renewals/${id}/${action}`);
-      expect([action, res.status, res.body.error_code]).toEqual([action, 403, 'cannot_decide_own_request']);
+      expect([action, res.status, res.body.error_code]).toEqual([
+        action,
+        403,
+        'cannot_decide_own_request',
+      ]);
     }
     expect((await RenewalRequest.findByPk(id))!.status).toBe('pending_approval');
   });
@@ -230,6 +266,8 @@ describe('A04 roles and spoofing', () => {
     const ok = await ini.post('/resources/res-a-01/renewals', {});
     expect(ok.status).toBe(201);
     const apr = await loggedIn(api.baseUrl, EMAILS.aprA);
-    expect((await apr.post(`/renewals/${ok.body.id}/approve`, { decided_by: 'u-uni-a' })).status).toBe(400);
+    expect(
+      (await apr.post(`/renewals/${ok.body.id}/approve`, { decided_by: 'u-uni-a' })).status,
+    ).toBe(400);
   });
 });

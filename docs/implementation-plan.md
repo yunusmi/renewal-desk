@@ -22,13 +22,15 @@ Implement sequentially in small vertical slices. At each milestone read `spec.md
 - If environment blocks Docker/Playwright, report exact error, mark implemented_unverified, provide run commands and continue independent work. No fabricated test outputs or claims. Do not mark release ready until P0 checks have actually passed.
 
 ## Completion checklist
-- [ ] Original PDF and provider preserved; core values exact.
-- [ ] Core roles, cross-tenant protection, own approval/rejection and 401/403/409 verified.
-- [ ] PostgreSQL active constraint and concurrent create/approve verified.
-- [ ] Approval+job+audit atomic, worker durable, stable key/payload, external response validated.
-- [ ] Actual restart after 503 preserves provider operation; date 2027-03-31, counts 1, reject stats 0.
-- [ ] 3 POST/GET/retry, stale worker, mismatch and rollback tested.
-- [ ] Full UI based on accepted v2, 1440×900 and 390, accessibility and flows verified.
-- [ ] Core/demo/test independent, no destructive default, migration/seed reproducible.
-- [ ] Swagger and Stoplight functional; all external JSON snake_case.
-- [ ] Docker/Compose/Makefile, CI, README commands, actual tests and limitations.
+- [x] Original PDF and provider preserved; core values exact.
+- [x] Core roles, cross-tenant protection, own approval/rejection and 401/403/409 verified.
+- [x] PostgreSQL active constraint and concurrent create/approve verified.
+- [x] Approval+job+audit atomic, worker durable, stable key/payload, external response validated.
+- [x] Actual restart after 503 preserves provider operation; date 2027-03-31, counts 1, reject stats 0.
+- [x] 3 POST/GET/retry, stale worker, mismatch and rollback tested.
+- [x] Full UI based on accepted v2, 1440×900 and 390, accessibility and flows verified.
+- [x] Core/demo/test independent, no destructive default, migration/seed reproducible.
+- [x] Swagger and Stoplight functional; all external JSON snake_case.
+- [x] Docker/Compose/Makefile, CI, README commands, actual tests and limitations.
+
+Verification recorded on 2026-11-12 in `docs/progress.md`; remote CI is configured but unrun, upstream audit findings and minor UI deviations are explicitly disclosed there.

@@ -9,6 +9,11 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((err: unknown) => {
-  console.error(JSON.stringify({ msg: 'api failed to start', error: err instanceof Error ? err.message : String(err) }));
+  console.error(
+    JSON.stringify({
+      msg: 'api failed to start',
+      error: err instanceof Error ? err.message : String(err),
+    }),
+  );
   process.exit(1);
 });

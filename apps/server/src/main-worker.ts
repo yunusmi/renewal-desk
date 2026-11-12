@@ -7,7 +7,11 @@ import { WorkerRunner } from './worker/runner';
 
 async function main(): Promise<void> {
   const cfg = loadWorkerConfig();
-  const logger = pino({ level: cfg.logLevel, redact: { paths: REDACT_PATHS, censor: '[redacted]' }, base: { svc: 'worker' } });
+  const logger = pino({
+    level: cfg.logLevel,
+    redact: { paths: REDACT_PATHS, censor: '[redacted]' },
+    base: { svc: 'worker' },
+  });
   const sequelize = createSequelize(cfg.databaseUrl, { poolMax: cfg.workerConcurrency + 2 });
   const runner = new WorkerRunner(sequelize, cfg, logger);
 
@@ -38,6 +42,11 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error(JSON.stringify({ msg: 'worker failed', error: err instanceof Error ? err.message : String(err) }));
+  console.error(
+    JSON.stringify({
+      msg: 'worker failed',
+      error: err instanceof Error ? err.message : String(err),
+    }),
+  );
   process.exit(1);
 });
